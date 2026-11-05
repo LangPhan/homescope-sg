@@ -1,0 +1,14 @@
+"use client";
+import Link from "next/link";
+import { Bell, Heart, Search, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ListingCard } from "./listing-card";
+import { Listing } from "@/lib/types";
+
+type SavedSearch={id:number;name:string;filters:Record<string,string>;created_at:string};
+export function AccountDashboard(){const [homes,setHomes]=useState<Listing[]>([]);const [searches,setSearches]=useState<SavedSearch[]>([]);const [signedIn,setSignedIn]=useState(false);const base=process.env.NEXT_PUBLIC_API_URL||"/api/v1";
+  useEffect(()=>{const token=localStorage.getItem("access_token");if(!token)return;setSignedIn(true);const headers={Authorization:`Bearer ${token}`};Promise.all([fetch(`${base}/me/favourites`,{headers}).then(r=>r.json()),fetch(`${base}/me/saved-searches`,{headers}).then(r=>r.json())]).then(([f,s])=>{setHomes(f.data||[]);setSearches(s.data||[]);}).catch(()=>{});},[base]);
+  async function removeSearch(id:number){const token=localStorage.getItem("access_token");await fetch(`${base}/me/saved-searches/${id}`,{method:"DELETE",headers:{Authorization:`Bearer ${token}`}});setSearches(items=>items.filter(item=>item.id!==id));}
+  if(!signedIn)return <div className="listing-grid"><div className="agent-card"><Heart size={24} color="var(--coral)"/><h2 className="serif" style={{fontSize:"2rem"}}>Your shortlist is private</h2><p className="muted">Sign in to load saved homes and searches from the PHP API.</p><Link href="/auth" className="button button-primary">Sign in</Link></div><div className="agent-card"><Bell size={24} color="var(--teal)"/><h2 className="serif" style={{fontSize:"2rem"}}>Keep useful filters</h2><p className="muted">Run a search, then save its URL-backed filter set.</p><Link href="/search" className="button button-ghost">Explore homes</Link></div></div>;
+  return <><h2 className="serif" style={{fontSize:"2.2rem"}}>Saved homes</h2>{homes.length?<div className="listing-grid">{homes.map(home=><ListingCard listing={home} key={home.id}/>)}</div>:<div className="agent-card"><p className="muted">No saved homes yet. Use the heart on any listing.</p></div>}<h2 className="serif" style={{fontSize:"2.2rem",marginTop:50}}>Saved searches</h2>{searches.length?<div style={{display:"grid",gap:10}}>{searches.map(item=><div className="agent-card" key={item.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:18}}><Link href={`/search?${new URLSearchParams(item.filters)}`}><strong>{item.name}</strong><div className="muted" style={{fontSize:".75rem",marginTop:4}}>{Object.entries(item.filters).filter(([,v])=>v).map(([k,v])=>`${k}: ${v}`).join(" · ")}</div></Link><button className="save-button" style={{position:"static"}} aria-label={`Delete ${item.name}`} onClick={()=>removeSearch(item.id)}><Trash2 size={16}/></button></div>)}</div>:<div className="agent-card"><p className="muted">No saved searches yet.</p></div>}</>;
+}

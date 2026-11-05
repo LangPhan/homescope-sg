@@ -1,7 +1,9 @@
 import { demoListings } from "./demo-data";
 import { Listing, ListingResponse, SearchFilters } from "./types";
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+export const API_URL = typeof window === "undefined"
+  ? process.env.API_INTERNAL_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"
+  : process.env.NEXT_PUBLIC_API_URL || "/api/v1";
 
 function applyDemoFilters(filters: SearchFilters): Listing[] {
   return demoListings.filter((listing) => {
