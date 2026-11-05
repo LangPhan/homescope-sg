@@ -1,0 +1,3 @@
+import { test, expect } from "@playwright/test";
+test("search to listing detail",async({page})=>{await page.goto("/search?property_type=Condo");await expect(page.getByRole("heading",{name:/homes match/})).toBeVisible();await page.locator(".listing-card").first().click();await expect(page.getByRole("button",{name:"Request a viewing"})).toBeVisible();await expect(page.locator('script[type="application/ld+json"]')).toHaveCount(1);});
+test("demo credentials populate secure sign-in",async({page})=>{await page.goto("/auth");await page.getByRole("button",{name:"Use demo credentials"}).click();await expect(page.getByLabel("Email")).toHaveValue("demo@homescope.sg");await expect(page.getByLabel("Password")).toHaveValue("DemoPass123!");});
