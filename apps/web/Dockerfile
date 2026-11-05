@@ -1,9 +1,9 @@
 FROM node:22-alpine AS base
 RUN corepack enable
 WORKDIR /app
-COPY package.json pnpm-workspace.yaml ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/web/package.json apps/web/package.json
-RUN pnpm install --filter @homescope/web... --frozen-lockfile=false
+RUN pnpm install --filter @homescope/web... --frozen-lockfile
 
 FROM base AS builder
 COPY apps/web apps/web
