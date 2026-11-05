@@ -2,7 +2,7 @@ EXPLAIN ANALYZE
 SELECT id, slug, price, location
 FROM listings
 WHERE MBRContains(
-  ST_GeomFromText('POLYGON((103.70 1.25,103.95 1.25,103.95 1.45,103.70 1.45,103.70 1.25))', 4326),
+  ST_GeomFromText('POLYGON((1.25 103.70,1.25 103.95,1.45 103.95,1.45 103.70,1.25 103.70))', 4326),
   location
 )
 AND status = 'published'

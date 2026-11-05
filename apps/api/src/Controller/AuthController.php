@@ -8,6 +8,7 @@ use Psr\Http\Message\ServerRequestInterface;
 final class AuthController
 {
     public function __construct(private AuthService $auth){}
+    /** @return array<string,mixed> */
     private function body(ServerRequestInterface $r):array{return (array)json_decode((string)$r->getBody(),true);}
     private function cookie(string $token):string{$secure=filter_var(getenv('COOKIE_SECURE')?:'false',FILTER_VALIDATE_BOOL)?'; Secure':'';return "refresh_token={$token}; Path=/api/v1/auth; HttpOnly; SameSite=Lax; Max-Age=604800{$secure}";}
     public function register(ServerRequestInterface $r,ResponseInterface $res):ResponseInterface{try{$b=$this->body($r);$pair=$this->auth->register($b['name']??'Explorer',$b['email']??'',$b['password']??'');$refresh=$pair['refresh_token'];unset($pair['refresh_token']);return Http::json($res,['data'=>$pair],201)->withHeader('Set-Cookie',$this->cookie($refresh));}catch(\InvalidArgumentException|\DomainException $e){return Http::error($res,'VALIDATION_ERROR',$e->getMessage(),422);}}
