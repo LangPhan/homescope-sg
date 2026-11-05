@@ -1,0 +1,25 @@
+{
+  "name": "homescope/api",
+  "description": "HomeScope SG property search REST API",
+  "type": "project",
+  "require": {
+    "php": "^8.3",
+    "slim/slim": "^4.15",
+    "slim/psr7": "^1.7",
+    "php-di/php-di": "^7.0",
+    "firebase/php-jwt": "^7.0",
+    "predis/predis": "^3.2",
+    "monolog/monolog": "^3.9",
+    "vlucas/phpdotenv": "^5.6"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^12.0",
+    "phpstan/phpstan": "^2.1"
+  },
+  "autoload": { "psr-4": { "HomeScope\\": "src/" } },
+  "autoload-dev": { "psr-4": { "HomeScope\\Tests\\": "tests/" } },
+  "scripts": {
+    "test": "phpunit",
+    "analyse": "phpstan analyse src --level=6"
+  }
+}
