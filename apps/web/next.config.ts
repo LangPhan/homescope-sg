@@ -9,6 +9,10 @@ try {
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  allowedDevOrigins: (process.env.NEXT_DEV_ALLOWED_HOSTS || "")
+    .split(",")
+    .map((host) => host.trim())
+    .filter(Boolean),
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
