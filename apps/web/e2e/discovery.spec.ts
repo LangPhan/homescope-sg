@@ -19,7 +19,7 @@ test("search to listing detail and back restores results",async({page})=>{
   const card=page.locator(".listing-card").nth(6);
   const detailUrl=await card.getAttribute("href");
   if(!detailUrl)throw new Error("Listing card is missing its detail URL");
-  await Promise.all([page.waitForURL(`**${detailUrl}`),card.click()]);
+  await Promise.all([page.waitForURL(`**${detailUrl}`),card.click({force:true})]);
   await expect(page.getByRole("button",{name:"Request a viewing"})).toBeVisible();
   await expect(page.locator('script[type="application/ld+json"]')).toHaveCount(1);
   await page.waitForLoadState("networkidle");

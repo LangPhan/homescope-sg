@@ -142,22 +142,22 @@ export function ExploreResults({ filters }: { filters: SearchFilters }) {
   }, [query.fetchNextPage, query.hasNextPage, query.isFetchingNextPage, query.isFetchNextPageError]);
 
   return <>
-    <section className="results-panel" ref={panelRef} onScroll={persistPosition}>
-      <div className={`results-head${headerDocked ? " is-docked" : ""}`} ref={headerRef}>
-        <div><div className="eyebrow">Explore Singapore</div><h1>{total === undefined ? "Finding homes…" : `${total} homes match`}</h1></div>
-        <div className="results-actions"><SaveSearchButton filters={filters}/><span className="pill">Map + list</span></div>
+    <section className="results-panel overflow-y-auto px-[max(20px,calc((100vw-1200px)/2))] pr-[22px] pb-7 max-[900px]:overflow-visible max-[620px]:px-3.5" ref={panelRef} onScroll={persistPosition}>
+      <div className={`sticky top-0 z-[12] mb-5 flex items-center justify-between gap-5 border-b border-line/80 bg-paper/96 py-[28px] pb-[18px] backdrop-blur-xl transition-[padding,box-shadow,background-color] duration-300 ${headerDocked ? "bg-paper/99 pt-3.5 shadow-[0_14px_24px_-24px_rgba(16,42,46,.65)]" : ""}`} ref={headerRef}>
+        <div><div className="text-xs font-extrabold tracking-[.15em] text-teal uppercase">Explore Singapore</div><h1 className="m-0 text-2xl max-[620px]:text-xl">{total === undefined ? "Finding homes…" : `${total} homes match`}</h1></div>
+        <div className="flex shrink-0 gap-2"><SaveSearchButton filters={filters}/><span className="inline-flex items-center rounded-full border border-line bg-white/90 px-3 py-2 text-[.82rem]">Map + list</span></div>
       </div>
-      {query.isPending ? <div className="search-results">{Array.from({ length: 6 }, (_, index) => <ListingCardSkeleton key={index}/>)}</div> : query.isError && !query.data ? <div className="infinite-status"><button className="button button-ghost" onClick={() => query.refetch()}>Try loading homes again</button></div> : listings.length ? <>
-        <div className="search-results">
+      {query.isPending ? <div className="grid grid-cols-2 gap-4 max-[620px]:grid-cols-1">{Array.from({ length: 6 }, (_, index) => <ListingCardSkeleton key={index}/>)}</div> : query.isError && !query.data ? <div className="grid min-h-[72px] place-items-center text-[.82rem] text-muted-copy"><button className="rounded-[10px] border border-line bg-white px-[18px] py-3 font-bold" onClick={() => query.refetch()}>Try loading homes again</button></div> : listings.length ? <>
+        <div className="grid grid-cols-2 gap-4 max-[620px]:grid-cols-1">
           {listings.map((listing) => <ListingCard key={listing.id} listing={listing} onNavigate={rememberSearchJourney}/>)}
           {query.isFetchingNextPage && Array.from({ length: 4 }, (_, index) => <ListingCardSkeleton key={`skeleton-${index}`}/>)}
         </div>
-        <div ref={sentinelRef} className="infinite-sentinel" aria-hidden="true" />
-        <div className="infinite-status" role="status" aria-live="polite">
-          {query.isFetchingNextPage ? "Loading more homes…" : query.isFetchNextPageError ? <button className="button button-ghost" onClick={() => query.fetchNextPage()}>Try loading again</button> : query.hasNextPage ? "Scroll for more homes" : `All ${listings.length} homes loaded`}
+        <div ref={sentinelRef} className="min-h-px" aria-hidden="true" />
+        <div className="grid min-h-[72px] place-items-center text-[.82rem] text-muted-copy" role="status" aria-live="polite">
+          {query.isFetchingNextPage ? "Loading more homes…" : query.isFetchNextPageError ? <button className="rounded-[10px] border border-line bg-white px-[18px] py-3 font-bold" onClick={() => query.fetchNextPage()}>Try loading again</button> : query.hasNextPage ? "Scroll for more homes" : `All ${listings.length} homes loaded`}
         </div>
-      </> : <div style={{ padding: "80px 20px", textAlign: "center" }}><h2 className="serif" style={{ fontSize: "2.4rem" }}>No homes in this view</h2><p className="muted">Try widening your budget or removing a filter.</p></div>}
+      </> : <div className="px-5 py-20 text-center"><h2 className="font-serif text-[2.4rem] tracking-[-.035em]">No homes in this view</h2><p className="text-muted-copy">Try widening your budget or removing a filter.</p></div>}
     </section>
-    {query.isPending ? <div className="map-panel skeleton-block"/> : <PropertyMap listings={listings} onNavigate={rememberSearchJourney}/>}
+    {query.isPending ? <div className="min-h-[500px] animate-pulse bg-[#e8ece8] max-[900px]:h-[55vh]"/> : <PropertyMap listings={listings} onNavigate={rememberSearchJourney}/>}
   </>;
 }

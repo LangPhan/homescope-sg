@@ -148,7 +148,7 @@ export function PropertyMap({ listings, onNavigate }: { listings: Listing[]; onN
     mapSession.listeners.add(listener);
     if (!mapSession.container) {
       mapSession.container = document.createElement("div");
-      mapSession.container.className = "persistent-map-container";
+      mapSession.container.className = "absolute inset-0 h-full w-full";
     }
     const container = mapSession.container;
     host.appendChild(container);
@@ -165,9 +165,9 @@ export function PropertyMap({ listings, onNavigate }: { listings: Listing[]; onN
     };
   }, []);
 
-  return <div className="map-panel" aria-label="Map of search results">
-    <div ref={mapNode} style={{ position: "absolute", inset: 0 }} />
-    {provider === "error" && <div className="map-fallback" />}
-    <div className="map-label">{provider === "google" ? "Google Maps · drag to explore" : provider === "maplibre" ? "MapLibre · OpenStreetMap" : provider === "error" ? "Map unavailable" : "Loading map…"}</div>
+  return <div className="relative min-h-[500px] overflow-hidden bg-[#dfe8df] max-[900px]:h-[55vh]" aria-label="Map of search results">
+    <div ref={mapNode} className="absolute inset-0" />
+    {provider === "error" && <div className="absolute inset-0 bg-[#e5ebe3] bg-[linear-gradient(30deg,transparent_48%,#c9d5cc_49%,#c9d5cc_51%,transparent_52%),linear-gradient(120deg,transparent_46%,#fff_47%,#fff_51%,transparent_52%)] bg-[size:90px_120px]" />}
+    <div className="absolute top-[18px] left-1/2 z-[2] -translate-x-1/2 whitespace-nowrap rounded-full bg-white px-3.5 py-2.5 text-[.78rem] font-bold shadow-[0_6px_22px_rgba(0,0,0,.12)]">{provider === "google" ? "Google Maps · drag to explore" : provider === "maplibre" ? "MapLibre · OpenStreetMap" : provider === "error" ? "Map unavailable" : "Loading map…"}</div>
   </div>;
 }

@@ -4,8 +4,8 @@ import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { Providers } from "@/components/providers";
 
-const sans = DM_Sans({ subsets: ["latin"], variable: "--font-sans" });
-const serif = Cormorant_Garamond({ subsets: ["latin"], variable: "--font-serif", weight: ["400", "500", "600"] });
+const sans = DM_Sans({ subsets: ["latin"], variable: "--font-homescope-sans" });
+const serif = Cormorant_Garamond({ subsets: ["latin"], variable: "--font-homescope-serif", weight: ["400", "500", "600"] });
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.APP_URL || "http://localhost:3000"),
