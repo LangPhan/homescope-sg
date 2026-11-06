@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { DM_Sans, Cormorant_Garamond } from "next/font/google";
-import "./globals.css";
-import { SiteHeader } from "@/components/site-header";
-import { Providers } from "@/components/providers";
+import "@/_app/styles/globals.css";
+import { Providers } from "@/_app/providers/providers";
+import { SiteHeader } from "@/_app/ui/site-header";
 
 const sans = DM_Sans({ subsets: ["latin"], variable: "--font-homescope-sans" });
 const serif = Cormorant_Garamond({ subsets: ["latin"], variable: "--font-homescope-serif", weight: ["400", "500", "600"] });

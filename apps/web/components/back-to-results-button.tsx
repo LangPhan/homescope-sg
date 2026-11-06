@@ -1,5 +1,0 @@
-"use client";
-import { ArrowLeft } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-export function BackToResultsButton() { const router = useRouter(); function goBack() { const cameFromSearch = sessionStorage.getItem("homescope:navigated-from-search") === "true"; const returnUrl = sessionStorage.getItem("homescope:return-to-search") || "/search"; sessionStorage.removeItem("homescope:navigated-from-search"); if (cameFromSearch && window.history.length > 1) { sessionStorage.setItem("homescope:returning-from-detail", "true"); router.back(); } else { sessionStorage.removeItem("homescope:returning-from-detail"); router.push(returnUrl); } } return <Button type="button" variant="outline" size="sm" className="h-9 shrink-0 rounded-full border-line bg-white px-3 text-[.8rem] font-bold hover:-translate-x-0.5 hover:border-teal hover:bg-[#f5fbf9]" onClick={goBack} aria-label="Back to search results"><ArrowLeft size={16}/> Back</Button>; }
