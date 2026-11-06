@@ -38,7 +38,7 @@ async function feature(category, item) {
   const pin = property(detail, "nearbyCenter");
   const address = property(detail, "address");
   const district = item.districtLocation?.match(/^D(\d{1,2})\b/)?.[1];
-  if (!pin || !(pin.lat > 1.1 && pin.lat < 1.6 && pin.lng > 103.5 && pin.lng < 104.2) || !address || !district) return null;
+  if (!pin || !(pin.lat > 1.1 && pin.lat < 1.6 && pin.lng > 103.5 && pin.lng < 104.2) || !address || !district || !(item.price > 0)) return null;
   const station = [item.nearestMrt, item.nearestLrt].filter(Boolean)
     .filter((entry) => !entry.isUnopened && Number.isFinite(entry.distanceM))
     .sort((a, b) => a.distanceM - b.distanceM)[0];
@@ -48,6 +48,9 @@ async function feature(category, item) {
     properties: {
       name: item.name, address, district: `D${district.padStart(2, "0")}`,
       property_filter: category, property_type: item.subtype?.typeName ?? null,
+      price: item.price, psf: item.psf ?? null, bedrooms: item.bed ?? null,
+      bathrooms: item.bath ?? null, floor_area: item.builtSqft || null,
+      tenure: item.listingTenure ?? null, listed_at: item.listingRepostDateTime,
       listing_url: new URL(path, origin).href,
       coordinate_precision: "publisher_map_pin",
       mrt_name: station?.name ?? null, mrt_distance: station?.distanceM ?? null,
