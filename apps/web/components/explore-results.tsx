@@ -109,6 +109,15 @@ export function ExploreResults({ filters }: { filters: SearchFilters }) {
   useEffect(() => {
     if (restoredKeyRef.current === storageKey) return;
     restoredKeyRef.current = storageKey;
+    const shouldRestore = sessionStorage.getItem("homescope:returning-from-detail") === "true";
+    if (!shouldRestore) {
+      requestAnimationFrame(() => {
+        if (panelRef.current) panelRef.current.scrollTop = 0;
+        window.scrollTo({ top: 0, behavior: "instant" });
+        updateHeaderState();
+      });
+      return;
+    }
     const saved = sessionStorage.getItem(storageKey);
     if (!saved) return;
     try {
