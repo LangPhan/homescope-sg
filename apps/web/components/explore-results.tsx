@@ -34,7 +34,7 @@ export function ExploreResults({ filters }: { filters: SearchFilters }) {
     getNextPageParam: (lastPage) => lastPage.meta.next_cursor,
     staleTime: 30_000,
     gcTime: 30 * 60_000,
-    refetchOnMount: returningFromDetail ? false : true,
+    refetchOnMount: false,
     refetchOnWindowFocus: returningFromDetail ? false : true,
     refetchOnReconnect: returningFromDetail ? false : true
   });
