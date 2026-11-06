@@ -76,3 +76,9 @@
   body { @apply bg-paper font-sans text-ink antialiased; }
   button { @apply cursor-pointer; }
 }
+
+@keyframes save-heart-pop {
+  0%, 100% { transform: scale(1); }
+  38% { transform: scale(1.55) rotate(-12deg); }
+  68% { transform: scale(.88) rotate(6deg); }
+}
