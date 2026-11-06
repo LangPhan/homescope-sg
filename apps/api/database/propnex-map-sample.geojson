@@ -1,0 +1,71 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "propnex-541780",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          103.7890680960957,
+          1.303446024835805
+        ]
+      },
+      "properties": {
+        "name": "One-North Eden",
+        "address": "10 Slim Barracks Rise",
+        "postal_code": "138493",
+        "district": "D05",
+        "listing_url": "https://propnex.com/res/exclusive-details/541780/one-north-eden",
+        "coordinate_source": "https://www.onemap.gov.sg/api/common/elastic/search?searchVal=138493&returnGeom=Y&getAddrDetails=Y&pageNum=1",
+        "coordinate_precision": "building",
+        "mrt_name": null,
+        "mrt_distance": null
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "propnex-819597",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          103.8536949402406,
+          1.277224256162836
+        ]
+      },
+      "properties": {
+        "name": "Marina One Residences",
+        "address": "23 Marina Way",
+        "postal_code": "018979",
+        "district": "D01",
+        "listing_url": "https://propnex.com/listing-details/819597/marina-one-residences",
+        "coordinate_source": "https://www.onemap.gov.sg/api/common/elastic/search?searchVal=018979&returnGeom=Y&getAddrDetails=Y&pageNum=1",
+        "coordinate_precision": "building",
+        "mrt_name": null,
+        "mrt_distance": null
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "propnex-29298",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          103.8533269322972,
+          1.276714985074746
+        ]
+      },
+      "properties": {
+        "name": "Marina One Residences",
+        "address": "21 Marina Way",
+        "postal_code": "018978",
+        "district": "D01",
+        "listing_url": "https://www.propnex.com/res/listing-details/29298/marina-one-residences",
+        "coordinate_source": "https://www.onemap.gov.sg/api/common/elastic/search?searchVal=018978&returnGeom=Y&getAddrDetails=Y&pageNum=1",
+        "coordinate_precision": "building",
+        "mrt_name": null,
+        "mrt_distance": null
+      }
+    }
+  ]
+}
