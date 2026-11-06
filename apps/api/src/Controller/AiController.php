@@ -3,51 +3,39 @@ declare(strict_types=1);
 
 namespace HomeScope\Controller;
 
-use HomeScope\Cache;
 use HomeScope\Http;
+use HomeScope\Service\AiQuotaService;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 final class AiController
 {
-    private const MINUTE_LIMIT = 10;
-    private const DAILY_LIMIT = 100;
-
-    public function __construct(private Cache $cache) {}
+    public function __construct(private AiQuotaService $quota) {}
 
     public function authorize(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         $userId = (int)$request->getAttribute('user_id');
-        $minuteBucket = gmdate('YmdHi');
-        $dayBucket = gmdate('Ymd');
-        $minuteCount = $this->cache->increment("ai:user:{$userId}:minute:{$minuteBucket}", 90);
-        $dailyCount = $this->cache->increment("ai:user:{$userId}:day:{$dayBucket}", 90000);
+        $quota = $this->quota->consume($userId);
 
-        if ($minuteCount > self::MINUTE_LIMIT || $dailyCount > self::DAILY_LIMIT) {
-            $retryAfter = $minuteCount > self::MINUTE_LIMIT ? 60 : $this->secondsUntilUtcMidnight();
+        if (!$quota['allowed']) {
             return Http::error(
                 $response,
                 'AI_QUOTA_EXCEEDED',
                 'AI advisor quota reached. Please try again later.',
                 429,
                 [
-                    'minute_limit' => self::MINUTE_LIMIT,
-                    'daily_limit' => self::DAILY_LIMIT,
-                    'retry_after' => $retryAfter,
+                    'minute_limit' => AiQuotaService::MINUTE_LIMIT,
+                    'daily_limit' => AiQuotaService::DAILY_LIMIT,
+                    'retry_after' => $quota['retry_after'],
                 ],
-            )->withHeader('Retry-After', (string)$retryAfter);
+            )->withHeader('Retry-After', (string)$quota['retry_after']);
         }
 
         return $response
             ->withStatus(204)
-            ->withHeader('X-RateLimit-Limit-Minute', (string)self::MINUTE_LIMIT)
-            ->withHeader('X-RateLimit-Remaining-Minute', (string)max(0, self::MINUTE_LIMIT - $minuteCount))
-            ->withHeader('X-RateLimit-Limit-Day', (string)self::DAILY_LIMIT)
-            ->withHeader('X-RateLimit-Remaining-Day', (string)max(0, self::DAILY_LIMIT - $dailyCount));
-    }
-
-    private function secondsUntilUtcMidnight(): int
-    {
-        return max(1, strtotime('tomorrow UTC') - time());
+            ->withHeader('X-RateLimit-Limit-Minute', (string)AiQuotaService::MINUTE_LIMIT)
+            ->withHeader('X-RateLimit-Remaining-Minute', (string)max(0, AiQuotaService::MINUTE_LIMIT - $quota['minute_count']))
+            ->withHeader('X-RateLimit-Limit-Day', (string)AiQuotaService::DAILY_LIMIT)
+            ->withHeader('X-RateLimit-Remaining-Day', (string)max(0, AiQuotaService::DAILY_LIMIT - $quota['daily_count']));
     }
 }

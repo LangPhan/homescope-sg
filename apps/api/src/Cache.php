@@ -4,7 +4,7 @@ namespace HomeScope;
 
 use Predis\Client;
 
-final class Cache
+final class Cache implements CounterStore
 {
     private ?Client $client = null;
     private function client(): Client
