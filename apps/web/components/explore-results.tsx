@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { ListingCard } from "@/components/listing-card";
 import { ListingCardSkeleton } from "@/components/listing-card-skeleton";
@@ -11,7 +11,17 @@ import { ListingResponse, SearchFilters } from "@/lib/types";
 const PAGE_SIZE = "20";
 
 export function ExploreResults({ initialResult, filters }: { initialResult: ListingResponse; filters: SearchFilters }) {
+  const panelRef = useRef<HTMLElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const restoredKeyRef = useRef<string | null>(null);
+  const persistFrameRef = useRef<number | null>(null);
+  const [headerDocked, setHeaderDocked] = useState(false);
+  const storageKey = useMemo(() => {
+    const params = new URLSearchParams(Object.entries(filters).filter(([, value]) => value).map(([key, value]) => [key, String(value)]));
+    params.sort();
+    return `homescope:search-position:${params.toString() || "all"}`;
+  }, [filters]);
   const query = useInfiniteQuery({
     queryKey: ["listings", filters],
     queryFn: ({ pageParam }) => getListings({ ...filters, cursor: pageParam || undefined, limit: PAGE_SIZE }),
@@ -25,6 +35,75 @@ export function ExploreResults({ initialResult, filters }: { initialResult: List
     return [...unique.values()];
   }, [query.data.pages]);
 
+  const updateHeaderState = useCallback(() => {
+    const panel = panelRef.current;
+    const header = headerRef.current;
+    if (!panel || !header) return;
+    const panelScrolls = getComputedStyle(panel).overflowY !== "visible";
+    const stickyTop = Number.parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--results-sticky-top")) || 0;
+    setHeaderDocked(panelScrolls ? panel.scrollTop > 10 : header.getBoundingClientRect().top <= stickyTop + 1);
+  }, []);
+
+  const writePosition = useCallback(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    sessionStorage.setItem(storageKey, JSON.stringify({ panel: panel.scrollTop, window: window.scrollY }));
+    updateHeaderState();
+  }, [storageKey, updateHeaderState]);
+
+  const persistPosition = useCallback(() => {
+    if (persistFrameRef.current !== null) return;
+    persistFrameRef.current = requestAnimationFrame(() => {
+      persistFrameRef.current = null;
+      writePosition();
+    });
+  }, [writePosition]);
+
+  const rememberSearchJourney = useCallback(() => {
+    if (persistFrameRef.current !== null) cancelAnimationFrame(persistFrameRef.current);
+    persistFrameRef.current = null;
+    writePosition();
+    sessionStorage.setItem("homescope:return-to-search", `${window.location.pathname}${window.location.search}`);
+    sessionStorage.setItem("homescope:navigated-from-search", "true");
+  }, [writePosition]);
+
+  useEffect(() => {
+    const siteHeader = document.querySelector<HTMLElement>(".site-header");
+    const toolbar = document.querySelector<HTMLElement>(".search-toolbar");
+    const updateStickyOffset = () => {
+      const offset = (siteHeader?.offsetHeight || 0) + (toolbar?.offsetHeight || 0);
+      document.documentElement.style.setProperty("--results-sticky-top", `${offset}px`);
+      updateHeaderState();
+    };
+    const observer = new ResizeObserver(updateStickyOffset);
+    if (siteHeader) observer.observe(siteHeader);
+    if (toolbar) observer.observe(toolbar);
+    updateStickyOffset();
+    window.addEventListener("scroll", persistPosition, { passive: true });
+    window.addEventListener("resize", updateStickyOffset);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", persistPosition);
+      window.removeEventListener("resize", updateStickyOffset);
+      if (persistFrameRef.current !== null) cancelAnimationFrame(persistFrameRef.current);
+    };
+  }, [persistPosition, updateHeaderState]);
+
+  useEffect(() => {
+    if (restoredKeyRef.current === storageKey) return;
+    restoredKeyRef.current = storageKey;
+    const saved = sessionStorage.getItem(storageKey);
+    if (!saved) return;
+    try {
+      const position = JSON.parse(saved) as { panel?: number; window?: number };
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        if (panelRef.current) panelRef.current.scrollTop = position.panel || 0;
+        window.scrollTo({ top: position.window || 0, behavior: "instant" });
+        updateHeaderState();
+      }));
+    } catch { sessionStorage.removeItem(storageKey); }
+  }, [storageKey, updateHeaderState]);
+
   useEffect(() => {
     const sentinel = sentinelRef.current;
     if (!sentinel || !query.hasNextPage || query.isFetchNextPageError) return;
@@ -37,14 +116,14 @@ export function ExploreResults({ initialResult, filters }: { initialResult: List
   }, [query.fetchNextPage, query.hasNextPage, query.isFetchingNextPage, query.isFetchNextPageError]);
 
   return <>
-    <section className="results-panel">
-      <div className="results-head">
+    <section className="results-panel" ref={panelRef} onScroll={persistPosition}>
+      <div className={`results-head${headerDocked ? " is-docked" : ""}`} ref={headerRef}>
         <div><div className="eyebrow">Explore Singapore</div><h1>{initialResult.meta.total} homes match</h1></div>
         <div className="results-actions"><SaveSearchButton filters={filters}/><span className="pill">Map + list</span></div>
       </div>
       {listings.length ? <>
         <div className="search-results">
-          {listings.map((listing) => <ListingCard key={listing.id} listing={listing}/>)}
+          {listings.map((listing) => <ListingCard key={listing.id} listing={listing} onNavigate={rememberSearchJourney}/>)}
           {query.isFetchingNextPage && Array.from({ length: 4 }, (_, index) => <ListingCardSkeleton key={`skeleton-${index}`}/>)}
         </div>
         <div ref={sentinelRef} className="infinite-sentinel" aria-hidden="true" />

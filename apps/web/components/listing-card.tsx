@@ -6,7 +6,7 @@ import { useState } from "react";
 import { money } from "@/lib/api";
 import { Listing } from "@/lib/types";
 
-export function ListingCard({ listing }: { listing: Listing }) {
+export function ListingCard({ listing, onNavigate }: { listing: Listing; onNavigate?: () => void }) {
   const [saved, setSaved] = useState(false);
   async function toggleSaved(event: React.MouseEvent) {
     event.preventDefault();
@@ -14,7 +14,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
     const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null;
     if (token) fetch(`${process.env.NEXT_PUBLIC_API_URL || "/api/v1"}/me/favourites/${listing.id}`, { method: saved ? "DELETE" : "POST", headers: { Authorization: `Bearer ${token}` } }).catch(() => setSaved(saved));
   }
-  return <Link href={`/listings/${listing.slug}`} className="listing-card" aria-label={`View ${listing.title}`}>
+  return <Link href={`/listings/${listing.slug}`} className="listing-card" aria-label={`View ${listing.title}`} onClick={(event) => { if (!event.defaultPrevented) onNavigate?.(); }}>
     <div className="listing-image-wrap">
       <Image className="listing-image" src={listing.image_url} alt={listing.title} fill sizes="(max-width: 620px) 100vw, 33vw" />
       {listing.is_featured && <span className="card-badge">Curated pick</span>}
