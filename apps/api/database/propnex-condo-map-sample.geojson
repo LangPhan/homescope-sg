@@ -1,0 +1,52 @@
+{
+  "type": "FeatureCollection",
+  "source_url": "https://propnex.com/buy/condo",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "propnex-1021825",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          103.7496028407776,
+          1.382797866664282
+        ]
+      },
+      "properties": {
+        "name": "Wandervale",
+        "address": "Choa Chu Kang Avenue 3",
+        "district": "D23",
+        "listing_url": "https://propnex.com/listing/for-sale-wandervale-1021825",
+        "coordinate_precision": "development_reference",
+        "map_reference_postal_code": "689885",
+        "coordinate_source": "https://www.onemap.gov.sg/api/common/elastic/search?searchVal=689885&returnGeom=Y&getAddrDetails=Y&pageNum=1",
+        "mrt_name": "Keat Hong LRT",
+        "mrt_distance": 621,
+        "mrt_distance_source": "PropNex results page (reported walking distance in metres)"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "propnex-807722",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          103.8641992283883,
+          1.337841482234528
+        ]
+      },
+      "properties": {
+        "name": "The Tre Ver",
+        "address": "Potong Pasir Avenue 1",
+        "district": "D13",
+        "listing_url": "https://propnex.com/listing/for-sale-the-tre-ver-807722",
+        "coordinate_precision": "development_reference",
+        "map_reference_postal_code": "358394",
+        "coordinate_source": "https://www.onemap.gov.sg/api/common/elastic/search?searchVal=358394&returnGeom=Y&getAddrDetails=Y&pageNum=1",
+        "mrt_name": "Woodleigh MRT",
+        "mrt_distance": 677,
+        "mrt_distance_source": "PropNex results page (reported walking distance in metres)"
+      }
+    }
+  ]
+}
