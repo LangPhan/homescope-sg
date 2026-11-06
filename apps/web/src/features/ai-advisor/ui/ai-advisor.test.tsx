@@ -53,6 +53,7 @@ describe("AiAdvisor", () => {
     expect(screen.getByRole("dialog", { name: "HomeScope AI property advisor" })).toBeInTheDocument();
     expect(screen.getByText(/Hi Demo Explorer/)).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: /condo 2 phòng ngủ/i }, { timeout: 3_000 })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Compare family homes in D15 and D18" })).toBeInTheDocument();
   });
 
   it("stores history per user session and clears it on logout", async () => {

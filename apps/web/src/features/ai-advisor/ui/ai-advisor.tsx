@@ -34,7 +34,7 @@ const toolOutputSchema = z.union([
 
 const suggestions = [
   "Tìm condo 2 phòng ngủ dưới S$1.8M gần MRT",
-  "Compare family homes in D09 and D10",
+  "Compare family homes in D15 and D18",
   "HomeScope hoạt động như thế nào?",
 ];
 
