@@ -14,7 +14,7 @@ export const classificationSchema = z.object({
     "prompt_injection",
     "unsafe",
   ]),
-  language: z.enum(["vi", "en"]),
+  normalized_query: z.string().trim().min(1).max(2_000),
 }).strict();
 
 export type Classification = z.infer<typeof classificationSchema>;
@@ -40,15 +40,6 @@ export function isAllowedCategory(category: Classification["category"]): boolean
 }
 
 export function refusalFor(classification: Classification): string {
-  if (classification.language === "vi") {
-    if (classification.category === "prompt_injection") {
-      return "Mình không thể làm theo yêu cầu thay đổi quy tắc, tiết lộ prompt hoặc bí mật hệ thống. Mình có thể giúp bạn tìm, so sánh và hiểu các listing synthetic trên HomeScope.";
-    }
-    if (classification.category === "unsafe") {
-      return "Mình chỉ hỗ trợ thông tin bất động sản HomeScope ở mức tham khảo, không thay thế tư vấn pháp lý hoặc tài chính. Bạn có thể hỏi mình về listing, bộ lọc, khu vực hoặc cách dùng HomeScope.";
-    }
-    return "Mình chỉ hỗ trợ tìm kiếm, so sánh và giải thích thông tin bất động sản trên HomeScope. Hãy cho mình biết ngân sách, khu vực/MRT, số phòng ngủ hoặc loại nhà bạn cần.";
-  }
   if (classification.category === "prompt_injection") {
     return "I can’t follow requests to change my rules or reveal system prompts or secrets. I can help you find, compare, and understand HomeScope’s synthetic listings.";
   }
@@ -56,11 +47,4 @@ export function refusalFor(classification: Classification): string {
     return "I can only provide general HomeScope property information, not legal or financial advice. Ask me about listings, filters, neighbourhoods, or how to use HomeScope.";
   }
   return "I can only help with finding, comparing, and understanding properties on HomeScope. Tell me your budget, preferred area/MRT, bedrooms, or property type.";
-}
-
-export function inferLanguage(message: string): "vi" | "en" {
-  return /[ăâđêôơưáàảãạéèẻẽẹíìỉĩịóòỏõọúùủũụýỳỷỹỵ]/iu.test(message)
-    || /\b(tôi|mình|căn|nhà|phòng|giá|khu|gần|tìm|muốn)\b/iu.test(message)
-    ? "vi"
-    : "en";
 }

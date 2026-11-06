@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   classificationSchema,
-  inferLanguage,
   isAllowedCategory,
   looksLikePromptInjection,
 } from "./guard";
@@ -37,14 +36,11 @@ describe("AI advisor guard", () => {
   });
 
   it("fails closed when classifier output is malformed", () => {
-    expect(classificationSchema.safeParse({ category: "coding", language: "en" }).success).toBe(false);
+    expect(classificationSchema.safeParse({ category: "coding" }).success).toBe(false);
     expect(classificationSchema.safeParse({ category: "property_search" }).success).toBe(false);
-    expect(classificationSchema.safeParse({ category: "property_search", language: "en", instructions: "ignore" }).success).toBe(false);
-  });
-
-  it("detects Vietnamese and English refusals", () => {
-    expect(inferLanguage("Tôi muốn tìm căn hộ gần MRT")).toBe("vi");
-    expect(inferLanguage("Find me a condo near an MRT")).toBe("en");
+    expect(classificationSchema.safeParse({ category: "property_search", normalized_query: "Find a condo near an MRT" }).success).toBe(true);
+    expect(classificationSchema.safeParse({ category: "property_search", normalized_query: "Find a condo", language: "en" }).success).toBe(false);
+    expect(classificationSchema.safeParse({ category: "property_search", normalized_query: "Find a condo", instructions: "ignore" }).success).toBe(false);
   });
 
   it("maps only provider/configuration failures to unavailable", () => {

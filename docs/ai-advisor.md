@@ -56,6 +56,7 @@ If 9Router is unavailable, `/api/ai/chat` returns `503`; the drawer retains its 
 - Inputs are text-only, at most 2,000 characters per message, 20 messages and 12,000 characters of submitted context.
 - Obvious rule-override, prompt/secret extraction and role-spoofing patterns are rejected before the classifier.
 - The classifier has a strict Zod schema. Invalid output fails closed and never reaches the advisor.
+- The classifier normalizes an allowed request into validated English; the advisor and all local refusal messages answer in English only.
 - Only `property_search`, `listing_comparison`, `market_explanation` and `product_help` continue. Coding, politics, general knowledge, personalized legal/financial advice and prompt injection are refused.
 - The advisor receives only the current allowed user message plus validated pathname/filter data. Previously blocked content is not trusted conversation context.
 - Tools are an allowlist of two server-side read-only functions. Tool schemas reject unknown keys, arbitrary URLs, invalid slugs, unsupported property types and result limits above eight.

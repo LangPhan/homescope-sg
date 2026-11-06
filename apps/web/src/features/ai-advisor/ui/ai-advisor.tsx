@@ -33,9 +33,9 @@ const toolOutputSchema = z.union([
 ]);
 
 const suggestions = [
-  "Tìm condo 2 phòng ngủ dưới S$1.8M gần MRT",
+  "Find a 2-bedroom condo under S$1.8M near an MRT",
   "Compare family homes in D15 and D18",
-  "HomeScope hoạt động như thế nào?",
+  "How does HomeScope work?",
 ];
 
 function currentPageContext() {

@@ -52,7 +52,7 @@ describe("AiAdvisor", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Open HomeScope AI" }));
     expect(screen.getByRole("dialog", { name: "HomeScope AI property advisor" })).toBeInTheDocument();
     expect(screen.getByText(/Hi Demo Explorer/)).toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: /condo 2 phòng ngủ/i }, { timeout: 3_000 })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /2-bedroom condo/i }, { timeout: 3_000 })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Compare family homes in D15 and D18" })).toBeInTheDocument();
   });
 
