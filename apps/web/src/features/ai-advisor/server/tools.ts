@@ -1,6 +1,7 @@
 import { toolDefinition } from "@tanstack/ai";
 import { z } from "zod";
 import { getHdbResales, hdbTownSchema } from "@/shared/api/hdb-resale";
+import { resolvePlace } from "./places";
 
 const listingCardSchema = z.object({
   slug: z.string(),
@@ -15,7 +16,7 @@ const listingCardSchema = z.object({
   bathrooms: z.number(),
   floor_area: z.number(),
   mrt_name: z.string(),
-  mrt_distance: z.number(),
+  mrt_distance: z.number().nullable(),
   image_url: z.string(),
   href: z.string(),
 });
@@ -62,7 +63,7 @@ function sanitizeListing(value: Record<string, unknown>): AdvisorListing {
     bathrooms: number(value.bathrooms),
     floor_area: number(value.floor_area),
     mrt_name: String(value.mrt_name || ""),
-    mrt_distance: number(value.mrt_distance),
+    mrt_distance: value.mrt_distance == null ? null : number(value.mrt_distance),
     image_url: String(value.image_url || ""),
     href: `/listings/${slug}`,
   });
@@ -80,16 +81,16 @@ async function fetchJson(path: string, signal?: AbortSignal): Promise<unknown> {
 
 export const searchListingsDefinition = toolDefinition({
   name: "search_listings",
-  description: "Search HomeScope's synthetic Singapore property listings using only supported catalogue filters.",
+  description: "Search HomeScope's Singapore property listings snapshot using catalogue filters.",
   inputSchema: searchListingsInputSchema,
-  outputSchema: z.object({ listings: z.array(listingCardSchema).max(8), synthetic: z.literal(true), presentation: z.enum(["cards", "comparison"]) }),
+  outputSchema: z.object({ listings: z.array(listingCardSchema).max(8), synthetic: z.boolean(), presentation: z.enum(["cards", "comparison"]) }),
 });
 
 export const getListingDetailDefinition = toolDefinition({
   name: "get_listing_detail",
   description: "Get safe public details for one HomeScope listing by its catalogue slug.",
   inputSchema: z.object({ slug: listingSlugSchema }).strict(),
-  outputSchema: z.object({ listing: listingCardSchema.extend({ description: z.string(), amenities: z.array(z.string()) }), synthetic: z.literal(true), presentation: z.enum(["cards", "comparison"]) }),
+  outputSchema: z.object({ listing: listingCardSchema.extend({ description: z.string(), amenities: z.array(z.string()) }), synthetic: z.boolean(), presentation: z.enum(["cards", "comparison"]) }),
 });
 
 const lookupHdbResales = toolDefinition({
@@ -128,7 +129,7 @@ export function createAdvisorTools(requestId: string, presentation: "cards" | "c
     const payload = await fetchJson(`/listings?${params}`, context?.abortSignal) as { data?: Array<Record<string, unknown>> };
     const listings = (payload.data || []).slice(0, input.limit).map(sanitizeListing);
     console.info(JSON.stringify({ event: "ai_tool", request_id: requestId, tool: "search_listings", latency_ms: Math.round(performance.now() - startedAt), result_count: listings.length }));
-    return { listings, synthetic: true as const, presentation };
+    return { listings, synthetic: (payload.data || []).some((row) => !row.source_url), presentation };
   });
 
   const getListingDetail = getListingDetailDefinition.server(async ({ slug }, context) => {
@@ -141,8 +142,35 @@ export function createAdvisorTools(requestId: string, presentation: "cards" | "c
       amenities: Array.isArray(payload.data.amenities) ? payload.data.amenities.map(String).slice(0, 20) : [],
     };
     console.info(JSON.stringify({ event: "ai_tool", request_id: requestId, tool: "get_listing_detail", latency_ms: Math.round(performance.now() - startedAt) }));
-    return { listing, synthetic: true as const, presentation };
+    return { listing, synthetic: !payload.data.source_url, presentation };
   });
 
-  return [searchListings, getListingDetail, lookupHdbResales] as const;
+  const searchNearPlace = toolDefinition({
+    name: "search_near_place",
+    description: "Resolve a named Singapore landmark or exact address and rank verified catalogue pins within 3 km by straight-line distance. Use for homes near a named place.",
+    inputSchema: z.object({
+      place: z.string().trim().min(2).max(120),
+      property_type: z.enum(["Condo", "HDB", "Apartment", "Landed"]).optional(),
+      max_price: z.number().int().positive().optional(),
+      min_price: z.number().int().nonnegative().optional(),
+      bedrooms: z.number().int().min(0).max(10).optional(),
+      district: z.string().regex(/^D(?:0[1-9]|1[0-9]|2[0-8])$/).optional(),
+      tenure: z.enum(["99-year", "999-year", "Freehold"]).optional(),
+    }).strict(),
+  }).server(async ({ place, ...filters }, context) => {
+    try {
+      const anchor = await resolvePlace(place, context?.abortSignal);
+      if (!anchor) return { status: "place_not_resolved" };
+      const params = new URLSearchParams({ near: `${anchor.lat},${anchor.lng}`, limit: "5" });
+      for (const [key, value] of Object.entries(filters)) if (value !== undefined) params.set(key, String(value));
+      const payload = await fetchJson(`/listings?${params}`, context?.abortSignal) as { data: Array<Record<string, unknown>> };
+      return {
+        status: "ok", place: anchor.name, coordinate_source: anchor.source, distance_method: "straight_line",
+        listings: payload.data.map((row) => ({ ...sanitizeListing(row), distance_m: Number(row.distance_m) })),
+      };
+    } catch {
+      return { status: "unavailable" };
+    }
+  });
+  return [searchListings, getListingDetail, lookupHdbResales, searchNearPlace] as const;
 }

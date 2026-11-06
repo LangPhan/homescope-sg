@@ -1,7 +1,26 @@
-import { describe, expect, it } from "vitest";
-import { listingSlugSchema, searchListingsInputSchema } from "./tools";
+import { describe, expect, it, vi } from "vitest";
+import { createAdvisorTools, listingSlugSchema, searchListingsInputSchema } from "./tools";
 
 describe("AI advisor tool boundaries", () => {
+  it("looks up Domain of the Istana by coordinates and preserves the search filters", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(Response.json({
+      data: [{ slug: "helios-residences", title: "Helios Residences", distance_m: 698 }],
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    try {
+      const tool = createAdvisorTools("test")[3];
+      const result = await tool.execute!({ place: "Domain of the Istana", bedrooms: 2 });
+      const url = new URL(String(fetchMock.mock.calls[0][0]));
+      expect(url.searchParams.get("near")).toBe("1.304729,103.843807");
+      expect(url.searchParams.get("bedrooms")).toBe("2");
+      expect(result).toMatchObject({
+        status: "ok", distance_method: "straight_line",
+        listings: [{ title: "Helios Residences", distance_m: 698, mrt_distance: null }],
+      });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
   it("accepts supported read-only listing filters", () => {
     const result = searchListingsInputSchema.parse({
       keyword: "Tiong Bahru",

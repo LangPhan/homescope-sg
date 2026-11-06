@@ -23,14 +23,14 @@ const listingSchema = z.object({
   bathrooms: z.number(),
   floor_area: z.number(),
   mrt_name: z.string(),
-  mrt_distance: z.number(),
+  mrt_distance: z.number().nullable(),
   image_url: z.string(),
   href: z.string().regex(/^\/listings\/[a-z0-9-]+$/),
 });
 
 const toolOutputSchema = z.union([
-  z.object({ listings: z.array(listingSchema).max(8), synthetic: z.literal(true), presentation: z.enum(["cards", "comparison"]) }),
-  z.object({ listing: listingSchema.extend({ description: z.string(), amenities: z.array(z.string()) }), synthetic: z.literal(true), presentation: z.enum(["cards", "comparison"]) }),
+  z.object({ listings: z.array(listingSchema).max(8), synthetic: z.boolean(), presentation: z.enum(["cards", "comparison"]) }),
+  z.object({ listing: listingSchema.extend({ description: z.string(), amenities: z.array(z.string()) }), synthetic: z.boolean(), presentation: z.enum(["cards", "comparison"]) }),
 ]);
 
 const suggestions = [
@@ -91,7 +91,7 @@ export function AdvisorMessage({ message }: { message: UIMessage }) {
 }
 
 function LockedPanel({ close }: { close: () => void }) {
-  return <div className="fixed right-4 bottom-[86px] z-[70] w-[min(400px,calc(100vw-32px))] overflow-hidden rounded-2xl border border-line bg-paper shadow-[0_28px_90px_rgba(16,42,46,.24)]"><div className="flex items-center justify-between border-b border-line bg-teal px-5 py-4 text-white"><div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-xl bg-white/15"><LockKeyhole size={18}/></span><div><div className="font-bold">HomeScope AI</div><div className="text-xs text-white/75">Property advisor</div></div></div><button onClick={close} aria-label="Close AI advisor" className="rounded-lg p-2 hover:bg-white/10"><X size={18}/></button></div><div className="p-6"><h2 className="font-serif text-2xl font-semibold">Find a better-fit home, faster.</h2><p className="mt-3 text-sm leading-6 text-muted-copy">Sign in to ask about budget, MRT access, bedrooms, compare synthetic listings, and get links to matching HomeScope homes.</p><Link href="/auth" className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-teal font-bold text-white hover:bg-teal-dark"><LockKeyhole size={16}/>Sign in to chat</Link><p className="mt-3 text-center text-[11px] text-muted-copy">AI answers are limited to HomeScope property topics.</p></div></div>;
+  return <div className="fixed right-4 bottom-[86px] z-[70] w-[min(400px,calc(100vw-32px))] overflow-hidden rounded-2xl border border-line bg-paper shadow-[0_28px_90px_rgba(16,42,46,.24)]"><div className="flex items-center justify-between border-b border-line bg-teal px-5 py-4 text-white"><div className="flex items-center gap-3"><span className="grid size-9 place-items-center rounded-xl bg-white/15"><LockKeyhole size={18}/></span><div><div className="font-bold">HomeScope AI</div><div className="text-xs text-white/75">Property advisor</div></div></div><button onClick={close} aria-label="Close AI advisor" className="rounded-lg p-2 hover:bg-white/10"><X size={18}/></button></div><div className="p-6"><h2 className="font-serif text-2xl font-semibold">Find a better-fit home, faster.</h2><p className="mt-3 text-sm leading-6 text-muted-copy">Sign in to ask about budget, MRT access, bedrooms, compare listings, and get links to matching HomeScope homes.</p><Link href="/auth" className="mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-teal font-bold text-white hover:bg-teal-dark"><LockKeyhole size={16}/>Sign in to chat</Link><p className="mt-3 text-center text-[11px] text-muted-copy">AI answers are limited to HomeScope property topics.</p></div></div>;
 }
 
 function AuthenticatedAdvisor({ user, close }: { user: AuthUser; close: () => void }) {

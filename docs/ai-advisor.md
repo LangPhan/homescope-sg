@@ -23,7 +23,7 @@ sequenceDiagram
     W->>A: Advisor stream with read-only tools
     A->>W: search_listings / get_listing_detail
     W->>L: Validated internal catalogue request
-    L-->>W: Sanitized synthetic listing data
+    L-->>W: Sanitized listing snapshot
     W-->>B: TanStack AI Server-Sent Events
   else Blocked category or malformed classifier
     W-->>B: Localized refusal SSE (advisor/tools not run)
@@ -59,7 +59,7 @@ If 9Router is unavailable, `/api/ai/chat` returns `503`; the drawer retains its 
 - The classifier normalizes an allowed request into validated English; the advisor and all local refusal messages answer in English only.
 - Only `property_search`, `listing_comparison`, `market_explanation` and `product_help` continue. Coding, politics, general knowledge, personalized legal/financial advice and prompt injection are refused.
 - The advisor receives only the current allowed user message plus validated pathname/filter data. Previously blocked content is not trusted conversation context.
-- Tools are an allowlist of three server-side read-only functions. The two catalogue tools validate slugs, filters and result limits. The HDB tool validates an optional town and queries a fixed government dataset for up to ten completed sales.
+- The four read-only tools cover catalogue search and detail, completed HDB sales, and landmark proximity. Named-place lookup uses an exact OneMap match or the sourced reference point for Domain of the Istana. MySQL ranks the catalogue pins within 3 km by straight-line distance. The assistant labels that distance method and asks for clarification when a place cannot be resolved.
 - Tool output removes agent contact data, creates only same-origin `/listings/{slug}` links and is validated again before listing cards render.
 - Model text is rendered as escaped React text, never raw HTML. Listing cards are constructed only from validated tool output.
 - Logs include request ID, category, model, latency, tool name, result count and usage. They omit messages, JWTs, system prompts and API keys.
