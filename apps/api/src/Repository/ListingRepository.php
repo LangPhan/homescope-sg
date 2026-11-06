@@ -13,7 +13,7 @@ final class ListingRepository
     public function search(array $filters): array
     {
         $where=['l.status = :status']; $params=['status'=>'published'];
-        if($q=$filters['q']??null){$where[]='(l.title LIKE :q OR l.address LIKE :q OR l.mrt_name LIKE :q)';$params['q']="%{$q}%";}
+        if($q=trim((string)($filters['q']??''))){$where[]='(l.title LIKE :q_title OR l.address LIKE :q_address OR l.mrt_name LIKE :q_mrt)';$term="%{$q}%";$params['q_title']=$term;$params['q_address']=$term;$params['q_mrt']=$term;}
         foreach(['property_type','district','tenure'] as $field) if($value=$filters[$field]??null){$where[]="l.{$field} = :{$field}";$params[$field]=$value;}
         if($v=$filters['min_price']??null){$where[]='l.price >= :min_price';$params['min_price']=(int)$v;}
         if($v=$filters['max_price']??null){$where[]='l.price <= :max_price';$params['max_price']=(int)$v;}

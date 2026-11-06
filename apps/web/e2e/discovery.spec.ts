@@ -31,3 +31,4 @@ test("search to listing detail and back restores results",async({page})=>{
   expect(mapAssetRequests).toBe(mapRequestsBeforeBack);
 });
 test("demo credentials populate secure sign-in",async({page})=>{await page.goto("/auth");await page.getByRole("button",{name:"Use demo credentials"}).click();await expect(page.getByLabel("Email")).toHaveValue("demo@homescope.sg");await expect(page.getByLabel("Password")).toHaveValue("DemoPass123!");});
+test("keyword search filters listings",async({page})=>{await page.goto("/search");await page.getByLabel("Search location").fill("Vista");await page.getByRole("button",{name:"Search",exact:true}).click();await expect(page).toHaveURL(/q=Vista/);await expect(page.getByRole("heading",{name:"30 homes match"})).toBeVisible();await expect(page.locator(".listing-card h3").first()).toContainText("Vista");});
