@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "maplibre-gl/dist/maplibre-gl.css";
 
 :root {
   --ink: #102a2e;
@@ -88,6 +89,9 @@ img { max-width: 100%; }
 .search-results { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 .search-results .listing-image-wrap { height: 180px; }
 .map-panel { position: relative; background: #dfe8df; min-height: 500px; overflow: hidden; }
+.map-panel .maplibregl-map { font-family: var(--font-sans), Arial, sans-serif; }
+.map-panel .maplibregl-ctrl-group { border-radius: 10px; overflow: hidden; box-shadow: 0 6px 22px rgba(16,42,46,.16); }
+.map-panel .maplibregl-ctrl-attrib { font-size: 10px; }
 .map-fallback { position: absolute; inset: 0; background-color: #e5ebe3; background-image: linear-gradient(30deg, transparent 48%, #c9d5cc 49%, #c9d5cc 51%, transparent 52%), linear-gradient(120deg, transparent 46%, #fff 47%, #fff 51%, transparent 52%); background-size: 90px 120px; }
 .map-fallback::after { content: "SINGAPORE"; position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%) rotate(-8deg); color: rgba(13,107,100,.12); font: 700 4.5rem var(--font-serif), serif; letter-spacing: .2em; }
 .map-label { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); background: white; border-radius: 99px; padding: 10px 14px; box-shadow: 0 6px 22px rgba(0,0,0,.12); font-size: .78rem; font-weight: 700; z-index: 2; white-space: nowrap; }

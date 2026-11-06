@@ -27,7 +27,7 @@ flowchart LR
   Cron[Idempotent sync job] --> PHP
 ```
 
-- `apps/web`: App Router, TypeScript, Tailwind CSS, shared components, TanStack Query, React Hook Form/Zod and Google Maps marker clustering.
+- `apps/web`: App Router, TypeScript, Tailwind CSS, shared components, TanStack Query, React Hook Form/Zod, Google Maps and a MapLibre/OpenStreetMap fallback with marker clustering.
 - `apps/api`: thin Slim controllers, services/repositories, PDO prepared SQL, JWT/refresh rotation and OpenAPI.
 - `infra`: Nginx same-origin reverse proxy; Docker Compose supplies PHP, MySQL and Redis without host installs.
 
@@ -74,9 +74,9 @@ pnpm --dir apps/web test:e2e
 
 CI repeats TypeScript, Vitest, Next production build, PHPUnit/PHPStan and both container builds. Acceptance targets are documented in [`docs/performance.md`](docs/performance.md).
 
-## Google Maps
+## Maps
 
-Set `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in `.env` and restrict the key to your deployed hostname and Maps JavaScript API. Without a key, HomeScope intentionally renders a designed fallback map with price markers; the rest of the journey remains usable.
+Set `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in `.env` and restrict the key to your deployed hostname and Maps JavaScript API. Without a key—or if Google Maps cannot load—HomeScope automatically switches to MapLibre with OpenStreetMap tiles, clustered results and listing navigation. The MapLibre worker is self-hosted so the fallback also works with strict production asset policies.
 
 ## Deployment
 
