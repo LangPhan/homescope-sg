@@ -9,6 +9,9 @@ type AuthSession = {
   ready: boolean;
   signIn: (accessToken: string, user?: AuthUser) => void;
   signOut: () => Promise<void>;
+  getAccessToken: () => string | null;
+  refreshSession: () => Promise<boolean>;
+  authenticatedFetch: typeof fetch;
 };
 
 const AuthSessionContext = createContext<AuthSession | null>(null);
@@ -37,11 +40,49 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
     setUser(resolvedUser);
   }, []);
 
+  const getAccessToken = useCallback(() => localStorage.getItem(TOKEN_KEY), []);
+
+  const clearAiSession = useCallback(() => {
+    for (let index = sessionStorage.length - 1; index >= 0; index--) {
+      const key = sessionStorage.key(index);
+      if (key?.startsWith("homescope-ai:")) sessionStorage.removeItem(key);
+    }
+    window.dispatchEvent(new Event("homescope:logout"));
+  }, []);
+
   const clearSession = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    clearAiSession();
     setUser(null);
-  }, []);
+  }, [clearAiSession]);
+
+  const refreshSession = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/auth/refresh`, { method: "POST", credentials: "include" });
+      if (!response.ok) throw new Error("Session expired");
+      const payload = await response.json();
+      signIn(payload.data.access_token, payload.data.user);
+      return true;
+    } catch {
+      clearSession();
+      return false;
+    }
+  }, [clearSession, signIn]);
+
+  const authenticatedFetch = useCallback<typeof fetch>(async (input, init) => {
+    const retryInput = input instanceof Request ? input.clone() : input;
+    const send = (token: string | null, target: RequestInfo | URL) => {
+      const headers = new Headers(init?.headers || (target instanceof Request ? target.headers : undefined));
+      if (token) headers.set("Authorization", `Bearer ${token}`);
+      return fetch(target, { ...init, headers });
+    };
+    let response = await send(getAccessToken(), input);
+    if (response.status !== 401) return response;
+    if (!await refreshSession()) return response;
+    response = await send(getAccessToken(), retryInput);
+    return response;
+  }, [getAccessToken, refreshSession]);
 
   const signOut = useCallback(async () => {
     try {
@@ -71,17 +112,11 @@ export function AuthSessionProvider({ children }: { children: React.ReactNode })
       return;
     }
 
-    fetch(`${API_URL}/auth/refresh`, { method: "POST", credentials: "include" })
-      .then(async (response) => {
-        if (!response.ok) throw new Error("Session expired");
-        const payload = await response.json();
-        signIn(payload.data.access_token, payload.data.user);
-      })
-      .catch(clearSession)
+    refreshSession()
       .finally(() => setReady(true));
-  }, [clearSession, signIn]);
+  }, [clearSession, refreshSession]);
 
-  const value = useMemo(() => ({ user, ready, signIn, signOut }), [ready, signIn, signOut, user]);
+  const value = useMemo(() => ({ user, ready, signIn, signOut, getAccessToken, refreshSession, authenticatedFetch }), [authenticatedFetch, getAccessToken, ready, refreshSession, signIn, signOut, user]);
   return <AuthSessionContext.Provider value={value}>{children}</AuthSessionContext.Provider>;
 }
 

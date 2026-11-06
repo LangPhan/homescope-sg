@@ -3,6 +3,7 @@ import { DM_Sans, Cormorant_Garamond } from "next/font/google";
 import "@/_app/styles/globals.css";
 import { Providers } from "@/_app/providers/providers";
 import { SiteHeader } from "@/_app/ui/site-header";
+import { AiAdvisor } from "@/features/ai-advisor";
 
 const sans = DM_Sans({ subsets: ["latin"], variable: "--font-homescope-sans" });
 const serif = Cormorant_Garamond({ subsets: ["latin"], variable: "--font-homescope-serif", weight: ["400", "500", "600"] });
@@ -15,5 +16,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en" data-scroll-behavior="smooth"><body className={`${sans.variable} ${serif.variable}`}><Providers><SiteHeader />{children}</Providers></body></html>;
+  return <html lang="en" data-scroll-behavior="smooth"><body className={`${sans.variable} ${serif.variable}`}><Providers><SiteHeader />{children}<AiAdvisor /></Providers></body></html>;
 }
