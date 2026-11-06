@@ -102,6 +102,7 @@ img { max-width: 100%; }
 .skeleton-line-short { width: 42%; }
 @keyframes skeleton-shimmer { 100% { transform: translateX(100%); } }
 .map-panel { position: relative; background: #dfe8df; min-height: 500px; overflow: hidden; }
+.persistent-map-container { position: absolute; inset: 0; width: 100%; height: 100%; }
 .map-panel .maplibregl-map { font-family: var(--font-sans), Arial, sans-serif; }
 .map-panel .maplibregl-ctrl-group { border-radius: 10px; overflow: hidden; box-shadow: 0 6px 22px rgba(16,42,46,.16); }
 .map-panel .maplibregl-ctrl-attrib { font-size: 10px; }

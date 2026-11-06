@@ -149,6 +149,6 @@ export function ExploreResults({ filters }: { filters: SearchFilters }) {
         </div>
       </> : <div style={{ padding: "80px 20px", textAlign: "center" }}><h2 className="serif" style={{ fontSize: "2.4rem" }}>No homes in this view</h2><p className="muted">Try widening your budget or removing a filter.</p></div>}
     </section>
-    {query.isPending ? <div className="map-panel skeleton-block"/> : <PropertyMap listings={listings}/>}
+    {query.isPending ? <div className="map-panel skeleton-block"/> : <PropertyMap listings={listings} onNavigate={rememberSearchJourney}/>}
   </>;
 }
