@@ -23,7 +23,8 @@ export async function getListings(filters: SearchFilters = {}): Promise<ListingR
     const response = await fetch(`${API_URL}/listings?${params}`, { next: { revalidate: 30 }, signal: AbortSignal.timeout(2500) });
     if (!response.ok) throw new Error("API unavailable");
     return response.json();
-  } catch {
+  } catch (error) {
+    if (typeof window !== "undefined") throw error;
     const data = applyDemoFilters(filters);
     return { data, meta: { total: data.length, next_cursor: null } };
   }

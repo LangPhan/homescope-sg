@@ -41,4 +41,5 @@ export type SearchFilters = {
   sort?: string;
   bbox?: string;
   cursor?: string;
+  limit?: string;
 };

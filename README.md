@@ -34,7 +34,7 @@ flowchart LR
 ## Product walkthrough
 
 1. `/search` keeps filters in the URL so pages are bookmarkable and server-renderable.
-2. `bbox=west,south,east,north` drives a MySQL spatial-index query. List mode uses an opaque cursor rather than offset pagination.
+2. `bbox=west,south,east,north` drives a MySQL spatial-index query. List mode uses an opaque cursor to power infinite scroll rather than offset pagination.
 3. `/listings/{slug}` returns the listing, agent and transaction history and renders metadata, canonical URL and JSON-LD on the server.
 4. Registration/login issues a 15-minute JWT. The seven-day random refresh token is hashed at rest, stored in an HttpOnly cookie and rotated on use.
 5. `/engineering` explains the vertical slice and makes performance/security trade-offs visible to a technical reviewer.
@@ -54,7 +54,7 @@ Every error follows `{ code, message, details, request_id }`; the same request I
 
 - `SPATIAL INDEX idx_location(location)` prunes viewport candidates before attribute filters.
 - `idx_search(status, property_type, district, price, bedrooms, listed_at, id)` covers the common discovery path; focused price sorting has its own index.
-- Stable cursor order is `(listed_at DESC, id DESC)`. Unlike offsets, earlier inserts do not shift later pages.
+- Cursor order follows the active sort field with `id DESC` as a stable tie-breaker. Unlike offsets, earlier inserts do not shift later pages.
 - Search caches expire after 30 seconds and detail caches after 60 seconds. The sync job invalidates listing keys after a successful transaction.
 - Run the representative query with `docker compose exec mysql mysql -uhomescope -phomescope homescope < apps/api/database/explain.sql` and keep the `EXPLAIN ANALYZE` output with performance review notes.
 

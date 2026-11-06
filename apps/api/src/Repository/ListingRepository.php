@@ -18,12 +18,14 @@ final class ListingRepository
         if($v=$filters['min_price']??null){$where[]='l.price >= :min_price';$params['min_price']=(int)$v;}
         if($v=$filters['max_price']??null){$where[]='l.price <= :max_price';$params['max_price']=(int)$v;}
         if($v=$filters['bedrooms']??null){$where[]='l.bedrooms >= :bedrooms';$params['bedrooms']=(int)$v;}
-        if($v=$filters['cursor']??null){$decoded=json_decode(base64_decode($v,true)?:'',true);if(isset($decoded['listed_at'],$decoded['id'])){$where[]='(l.listed_at < :cursor_date OR (l.listed_at = :cursor_date AND l.id < :cursor_id))';$params['cursor_date']=$decoded['listed_at'];$params['cursor_id']=(int)$decoded['id'];}}
+        $sortKey=$filters['sort']??'newest'; $sortConfig=match($sortKey){'price_asc'=>['price','ASC'],'price_desc'=>['price','DESC'],'psf_asc'=>['psf','ASC'],default=>['listed_at','DESC']}; [$sortField,$sortDirection]=$sortConfig;
         if($bbox=$filters['bbox']??null){$coords=array_map('floatval',explode(',',$bbox));if(count($coords)===4){[$west,$south,$east,$north]=$coords;$where[]='MBRContains(ST_GeomFromText(:viewport,4326), l.location)';$params['viewport']="POLYGON(({$south} {$west},{$south} {$east},{$north} {$east},{$north} {$west},{$south} {$west}))";}}
-        $sort=match($filters['sort']??'newest'){'price_asc'=>'l.price ASC, l.id DESC','price_desc'=>'l.price DESC, l.id DESC','psf_asc'=>'l.psf ASC, l.id DESC',default=>'l.listed_at DESC, l.id DESC'};
+        $countWhere=$where; $countParams=$params;
+        if($v=$filters['cursor']??null){$decoded=json_decode(base64_decode($v,true)?:'',true);$cursorValue=$decoded['value']??$decoded['listed_at']??null;if($cursorValue!==null&&isset($decoded['id'])){$operator=$sortDirection==='ASC'?'>':'<';$where[]="(l.{$sortField} {$operator} :cursor_value OR (l.{$sortField} = :cursor_value_equal AND l.id < :cursor_id))";$params['cursor_value']=$cursorValue;$params['cursor_value_equal']=$cursorValue;$params['cursor_id']=(int)$decoded['id'];}}
+        $sort="l.{$sortField} {$sortDirection}, l.id DESC";
         $limit=min(50,max(1,(int)($filters['limit']??20))); $sql='SELECT l.id,l.slug,l.title,l.address,l.district,l.property_type,l.tenure,l.price,l.psf,l.bedrooms,l.bathrooms,l.floor_area,ST_X(l.location) latitude,ST_Y(l.location) longitude,l.mrt_name,l.mrt_distance,l.image_url,l.is_featured,l.listed_at FROM listings l WHERE '.implode(' AND ',$where)." ORDER BY {$sort} LIMIT ".($limit+1);
-        $stmt=$this->db->prepare($sql);$stmt->execute($params);$rows=$stmt->fetchAll();$hasMore=count($rows)>$limit;if($hasMore)array_pop($rows);$last=end($rows);$cursor=$hasMore&&$last?base64_encode(json_encode(['listed_at'=>$last['listed_at'],'id'=>$last['id']])):null;
-        $countSql='SELECT COUNT(*) FROM listings l WHERE '.implode(' AND ',array_filter($where,fn($item)=>!str_contains($item,'cursor_')));$countParams=array_filter($params,fn($key)=>!str_starts_with($key,'cursor_'),ARRAY_FILTER_USE_KEY);$count=$this->db->prepare($countSql);$count->execute($countParams);
+        $stmt=$this->db->prepare($sql);$stmt->execute($params);$rows=$stmt->fetchAll();$hasMore=count($rows)>$limit;if($hasMore)array_pop($rows);$last=end($rows);$cursor=$hasMore&&$last?base64_encode(json_encode(['sort'=>$sortKey,'value'=>$last[$sortField],'id'=>$last['id']])):null;
+        $countSql='SELECT COUNT(*) FROM listings l WHERE '.implode(' AND ',$countWhere);$count=$this->db->prepare($countSql);$count->execute($countParams);
         return ['data'=>$rows,'meta'=>['total'=>(int)$count->fetchColumn(),'next_cursor'=>$cursor,'request_id'=>$_SERVER['REQUEST_ID']??null]];
     }
     /** @return array<string,mixed>|null */

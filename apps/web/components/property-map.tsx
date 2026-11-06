@@ -71,9 +71,9 @@ export function PropertyMap({ listings }: { listings: Listing[] }) {
           }
         });
         map.addLayer({ id: "home-clusters", type: "circle", source: "homes", filter: ["has", "point_count"], paint: { "circle-color": "#0d6b64", "circle-radius": ["step", ["get", "point_count"], 21, 10, 27, 30, 34], "circle-stroke-width": 3, "circle-stroke-color": "#fffdf8" } });
-        map.addLayer({ id: "cluster-count", type: "symbol", source: "homes", filter: ["has", "point_count"], layout: { "text-field": ["get", "point_count_abbreviated"], "text-size": 12 }, paint: { "text-color": "#ffffff" } });
+        map.addLayer({ id: "cluster-count", type: "symbol", source: "homes", filter: ["has", "point_count"], layout: { "text-field": ["get", "point_count_abbreviated"], "text-font": ["Open Sans Semibold"], "text-size": 12 }, paint: { "text-color": "#ffffff" } });
         map.addLayer({ id: "home-points", type: "circle", source: "homes", filter: ["!", ["has", "point_count"]], paint: { "circle-color": "#ec6a4d", "circle-radius": 8, "circle-stroke-width": 3, "circle-stroke-color": "#fffdf8" } });
-        map.addLayer({ id: "home-prices", type: "symbol", source: "homes", filter: ["!", ["has", "point_count"]], layout: { "text-field": ["get", "price"], "text-size": 11, "text-font": ["Open Sans Bold"], "text-offset": [0, -1.8], "text-allow-overlap": false }, paint: { "text-color": "#102a2e", "text-halo-color": "#fffdf8", "text-halo-width": 2 } });
+        map.addLayer({ id: "home-prices", type: "symbol", source: "homes", filter: ["!", ["has", "point_count"]], layout: { "text-field": ["get", "price"], "text-size": 11, "text-font": ["Open Sans Semibold"], "text-offset": [0, -1.8], "text-allow-overlap": false }, paint: { "text-color": "#102a2e", "text-halo-color": "#fffdf8", "text-halo-width": 2 } });
         setProvider("maplibre");
       });
       map.on("click", "home-clusters", async (event) => {
