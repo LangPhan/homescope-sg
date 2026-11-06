@@ -34,11 +34,11 @@ paths:
   /auth/login:
     post:
       summary: Authenticate
-      responses: { '200': { description: Access token and refresh cookie }, '401': { description: Invalid credentials } }
+      responses: { '200': { description: Access token, user profile and refresh cookie }, '401': { description: Invalid credentials } }
   /auth/refresh:
     post:
       summary: Rotate refresh token
-      responses: { '200': { description: Rotated token pair }, '401': { description: Invalid session } }
+      responses: { '200': { description: Rotated access token, user profile and refresh cookie }, '401': { description: Invalid session } }
   /me/favourites:
     get:
       security: [{ bearerAuth: [] }]

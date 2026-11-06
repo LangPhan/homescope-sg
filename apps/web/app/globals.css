@@ -37,6 +37,11 @@ img { max-width: 100%; }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 850; }
 .brand-mark { width: 35px; height: 35px; display: grid; place-items: center; border-radius: 10px 10px 4px 10px; background: var(--teal); color: white; transform: rotate(-2deg); }
 .nav-links { display: flex; align-items: center; gap: 28px; font-size: .9rem; font-weight: 650; }
+.nav-account { display: flex; align-items: center; gap: 10px; padding-left: 4px; }
+.nav-greeting { max-width: 190px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nav-logout { min-height: 40px; padding: 0 13px; border: 1px solid var(--line); border-radius: 10px; display: inline-flex; align-items: center; gap: 7px; color: var(--ink); background: white; font-weight: 750; transition: .2s ease; }
+.nav-logout:hover { border-color: var(--teal); color: var(--teal); }
+.nav-auth-placeholder { width: 92px; height: 40px; border-radius: 10px; background: #e8ece8; }
 .mobile-menu { display: none; }
 
 .hero { min-height: 680px; background: var(--cream); position: relative; overflow: hidden; display: flex; align-items: center; }
