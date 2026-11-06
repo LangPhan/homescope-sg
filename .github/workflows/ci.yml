@@ -32,3 +32,15 @@ jobs:
       - run: docker compose config
       - run: docker build -f apps/api/Dockerfile apps/api
       - run: docker build -f apps/web/Dockerfile .
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 11.25.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --dir apps/web exec playwright install --with-deps chromium
+      - run: docker compose up -d --build
+      - run: PLAYWRIGHT_BASE_URL=http://localhost:8080 pnpm --dir apps/web test:e2e --project=chromium

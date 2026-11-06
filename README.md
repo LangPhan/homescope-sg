@@ -1,6 +1,6 @@
 # HomeScope SG
 
-HomeScope SG is an independent, full-stack Singapore property portal case study. It is designed around the core engineering problems in the PropNex Senior Fullstack Engineer role: fast multi-filter search, map viewport queries, SSR property pages, secure accounts, caching, data synchronisation and reproducible delivery.
+HomeScope SG is an independent, full-stack Singapore property portal case study. It is designed around the core engineering problems in the PropNex Senior Fullstack Engineer role: fast multi-filter search, map viewport queries, SSR property pages, secure accounts, a guarded AI property advisor, caching, data synchronisation and reproducible delivery.
 
 > Portfolio disclaimer: HomeScope uses synthetic listings, agents and transactions. It is not affiliated with or endorsed by PropNex Limited.
 
@@ -21,13 +21,17 @@ The Next.js UI also has a small fallback dataset, so `pnpm install && pnpm dev` 
 flowchart LR
   Browser -->|SSR + navigation| Next[Next.js 16]
   Browser -->|/api/v1| Nginx[Nginx same-origin edge]
+  Browser -->|/api/ai/chat SSE| Nginx
+  Nginx -->|buffering off| Next
+  Next -->|OpenAI-compatible| Router[9Router / production gateway]
+  Next -->|JWT + quota check| PHP
   Nginx --> PHP[PHP 8.3 + Slim 4]
   PHP --> Redis[(Redis cache + rate limits)]
   PHP --> MySQL[(MySQL 8.4)]
   Cron[Idempotent sync job] --> PHP
 ```
 
-- `apps/web`: App Router, TypeScript, Tailwind CSS, shared components, TanStack Query, React Hook Form/Zod, Google Maps and a MapLibre/OpenStreetMap fallback with marker clustering.
+- `apps/web`: App Router, TypeScript, Tailwind CSS, shared components, TanStack Query, TanStack AI, React Hook Form/Zod, Google Maps and a MapLibre/OpenStreetMap fallback with marker clustering.
 - `apps/api`: thin Slim controllers, services/repositories, PDO prepared SQL, JWT/refresh rotation and OpenAPI.
 - `infra`: Nginx same-origin reverse proxy; Docker Compose supplies PHP, MySQL and Redis without host installs.
 
@@ -38,6 +42,21 @@ flowchart LR
 3. `/listings/{slug}` returns the listing, agent and transaction history and renders metadata, canonical URL and JSON-LD on the server.
 4. Registration/login issues a 15-minute JWT. The seven-day random refresh token is hashed at rest, stored in an HttpOnly cookie and rotated on use.
 5. `/engineering` explains the vertical slice and makes performance/security trade-offs visible to a technical reviewer.
+6. The floating HomeScope AI drawer is locked to authenticated users, streams through TanStack AI and can only query synthetic listings through two read-only tools.
+
+## AI property advisor
+
+HomeScope AI uses `@tanstack/ai`, `@tanstack/ai-react` and the official OpenAI-compatible adapter against 9Router model `cx/gpt-6-luna`. Create a dedicated 9Router key named `homescope-local`, then set these server-only values in `.env`:
+
+```dotenv
+NINE_ROUTER_BASE_URL=http://host.docker.internal:20128/v1
+NINE_ROUTER_MODEL=cx/gpt-6-luna
+NINE_ROUTER_API_KEY=<dedicated-homescope-key>
+```
+
+Do not use a `NEXT_PUBLIC_*` name for the key. Docker maps `host.docker.internal` to the host gateway on Linux. Production can point the same variables at a secured OpenAI-compatible gateway; there is no automatic provider fallback.
+
+Before any model call, PHP validates the JWT and applies Redis quotas of 10 messages/minute and 100/day per user. A deterministic injection guard and a separate strict-schema classifier then allow only property search, listing comparison, market explanation and HomeScope product help. The advisor can call only `search_listings` and `get_listing_detail`; both validate arguments and return synthetic catalogue data. See [the AI architecture and security notes](docs/ai-advisor.md).
 
 ## API examples
 
@@ -68,7 +87,7 @@ Every error follows `{ code, message, details, request_id }`; the same request I
 pnpm install
 pnpm typecheck && pnpm test && pnpm build
 docker compose build api
-docker compose run --rm api composer test
+docker run --rm -v "$PWD/apps/api:/app" -w /app composer:2 sh -lc 'composer install --prefer-dist --no-interaction --no-progress && vendor/bin/phpunit'
 pnpm --dir apps/web test:e2e
 ```
 
@@ -84,6 +103,6 @@ The intended near-zero-cost deployment is one OCI Always Free VM with Docker Com
 
 ## Intentional boundaries
 
-This portfolio slice omits payments, chat, CMS and real listing ingestion. Enquiries are non-sending UI. The focus is the quality of one representative end-to-end journey rather than feature count.
+This portfolio slice omits payments, human chat, CMS and real listing ingestion. The AI advisor has no web access, no code execution and no durable conversation database. Enquiries are non-sending UI. The focus is the quality of one representative end-to-end journey rather than feature count.
 
 Property photography is loaded from [Unsplash](https://unsplash.com/) for demonstration and remains subject to its source terms.
