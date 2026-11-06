@@ -81,17 +81,17 @@ export const searchListingsDefinition = toolDefinition({
   name: "search_listings",
   description: "Search HomeScope's synthetic Singapore property listings using only supported catalogue filters.",
   inputSchema: searchListingsInputSchema,
-  outputSchema: z.object({ listings: z.array(listingCardSchema).max(8), synthetic: z.literal(true) }),
+  outputSchema: z.object({ listings: z.array(listingCardSchema).max(8), synthetic: z.literal(true), presentation: z.enum(["cards", "comparison"]) }),
 });
 
 export const getListingDetailDefinition = toolDefinition({
   name: "get_listing_detail",
   description: "Get safe public details for one HomeScope listing by its catalogue slug.",
   inputSchema: z.object({ slug: listingSlugSchema }).strict(),
-  outputSchema: z.object({ listing: listingCardSchema.extend({ description: z.string(), amenities: z.array(z.string()) }), synthetic: z.literal(true) }),
+  outputSchema: z.object({ listing: listingCardSchema.extend({ description: z.string(), amenities: z.array(z.string()) }), synthetic: z.literal(true), presentation: z.enum(["cards", "comparison"]) }),
 });
 
-export function createAdvisorTools(requestId: string) {
+export function createAdvisorTools(requestId: string, presentation: "cards" | "comparison" = "cards") {
   const searchListings = searchListingsDefinition.server(async (input, context) => {
     const startedAt = performance.now();
     const params = new URLSearchParams();
@@ -110,7 +110,7 @@ export function createAdvisorTools(requestId: string) {
     const payload = await fetchJson(`/listings?${params}`, context?.abortSignal) as { data?: Array<Record<string, unknown>> };
     const listings = (payload.data || []).slice(0, input.limit).map(sanitizeListing);
     console.info(JSON.stringify({ event: "ai_tool", request_id: requestId, tool: "search_listings", latency_ms: Math.round(performance.now() - startedAt), result_count: listings.length }));
-    return { listings, synthetic: true as const };
+    return { listings, synthetic: true as const, presentation };
   });
 
   const getListingDetail = getListingDetailDefinition.server(async ({ slug }, context) => {
@@ -123,7 +123,7 @@ export function createAdvisorTools(requestId: string) {
       amenities: Array.isArray(payload.data.amenities) ? payload.data.amenities.map(String).slice(0, 20) : [],
     };
     console.info(JSON.stringify({ event: "ai_tool", request_id: requestId, tool: "get_listing_detail", latency_ms: Math.round(performance.now() - startedAt) }));
-    return { listing, synthetic: true as const };
+    return { listing, synthetic: true as const, presentation };
   });
 
   return [searchListings, getListingDetail] as const;

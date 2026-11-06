@@ -75,13 +75,14 @@ describe("AiAdvisor", () => {
     const { rerender } = render(<AdvisorMessage message={toolMessage("input-complete")} />);
     expect(screen.getByText("Searching HomeScope listings…")).toBeInTheDocument();
 
-    rerender(<AdvisorMessage message={toolMessage("complete", { listings: [], synthetic: true })} />);
+    rerender(<AdvisorMessage message={toolMessage("complete", { listings: [], synthetic: true, presentation: "cards" })} />);
     expect(screen.queryByText("Searching HomeScope listings…")).not.toBeInTheDocument();
   });
 
   it("renders completed listing cards without a stale search status", () => {
     render(<AdvisorMessage message={toolMessage("complete", {
       synthetic: true,
+      presentation: "cards",
       listings: [{
         slug: "queenstown-loft-36",
         title: "Queenstown Loft 36",
@@ -103,5 +104,55 @@ describe("AiAdvisor", () => {
 
     expect(screen.getByRole("link", { name: /Queenstown Loft 36/ })).toHaveAttribute("href", "/listings/queenstown-loft-36");
     expect(screen.queryByText("Searching HomeScope listings…")).not.toBeInTheDocument();
+  });
+
+  it("does not duplicate comparison results as listing cards", () => {
+    render(<AdvisorMessage message={toolMessage("complete", {
+      synthetic: true,
+      presentation: "comparison",
+      listings: [{
+        slug: "queenstown-loft-36",
+        title: "Queenstown Loft 36",
+        address: "36 Queensway",
+        district: "D03",
+        property_type: "Condo",
+        tenure: "99-year",
+        price: 460000,
+        psf: 524,
+        bedrooms: 2,
+        bathrooms: 2,
+        floor_area: 877,
+        mrt_name: "Queenstown MRT",
+        mrt_distance: 592,
+        image_url: "https://images.unsplash.com/demo",
+        href: "/listings/queenstown-loft-36",
+      }],
+    })} />);
+
+    expect(screen.queryByRole("link", { name: /Queenstown Loft 36/ })).not.toBeInTheDocument();
+    expect(screen.queryByText("Searching HomeScope listings…")).not.toBeInTheDocument();
+  });
+
+  it("renders assistant comparison tables with safe listing links", () => {
+    const message: UIMessage = {
+      id: "comparison-answer",
+      role: "assistant",
+      parts: [{
+        type: "text",
+        content: [
+          "| Home | Price | Link |",
+          "| --- | ---: | --- |",
+          "| Queenstown Loft | S$460,000 | [View home](/listings/queenstown-loft-36) |",
+        ].join("\n"),
+      }],
+      createdAt: new Date(),
+    };
+
+    render(<AdvisorMessage message={message} />);
+
+    expect(screen.getByRole("table")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Home" })).toBeInTheDocument();
+    expect(screen.getByText("Queenstown Loft")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "View home" })).toHaveAttribute("href", "/listings/queenstown-loft-36");
   });
 });

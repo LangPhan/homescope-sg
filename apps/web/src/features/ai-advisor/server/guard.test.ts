@@ -3,6 +3,7 @@ import {
   classificationSchema,
   isAllowedCategory,
   looksLikePromptInjection,
+  normalizeBusinessClassification,
 } from "./guard";
 import { isProviderUnavailable, ProviderConfigurationError } from "./provider";
 
@@ -33,6 +34,29 @@ describe("AI advisor guard", () => {
     expect(isAllowedCategory("off_topic")).toBe(false);
     expect(isAllowedCategory("prompt_injection")).toBe(false);
     expect(isAllowedCategory("unsafe")).toBe(false);
+  });
+
+  it.each([
+    "Compare family homes in D15 and D18",
+    "Show a comparison of these listings",
+    "D15 versus D18 for a family home",
+    "Which property is the better option?",
+  ])("normalizes a misclassified comparison intent: %s", (normalizedQuery) => {
+    expect(normalizeBusinessClassification({
+      category: "property_search",
+      normalized_query: normalizedQuery,
+    }).category).toBe("listing_comparison");
+  });
+
+  it("does not reclassify normal searches or blocked categories", () => {
+    expect(normalizeBusinessClassification({
+      category: "property_search",
+      normalized_query: "Find family homes in D15 and D18",
+    }).category).toBe("property_search");
+    expect(normalizeBusinessClassification({
+      category: "off_topic",
+      normalized_query: "Compare JavaScript frameworks",
+    }).category).toBe("off_topic");
   });
 
   it("fails closed when classifier output is malformed", () => {

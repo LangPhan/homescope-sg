@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Bot, Building2, CircleStop, LockKeyhole, MessageCircle, RefreshCw, RotateCcw, Send, Sparkles, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fetchServerSentEvents, sessionStoragePersistence, useChat, type UIMessage } from "@tanstack/ai-react";
+import { Markdown, type MarkdownComponents } from "@tanstack/markdown/react";
 import { z } from "zod";
 import { money } from "@/shared/api";
 import { useAuthSession, type AuthUser } from "@/shared/auth";
@@ -28,8 +29,8 @@ const listingSchema = z.object({
 });
 
 const toolOutputSchema = z.union([
-  z.object({ listings: z.array(listingSchema).max(8), synthetic: z.literal(true) }),
-  z.object({ listing: listingSchema.extend({ description: z.string(), amenities: z.array(z.string()) }), synthetic: z.literal(true) }),
+  z.object({ listings: z.array(listingSchema).max(8), synthetic: z.literal(true), presentation: z.enum(["cards", "comparison"]) }),
+  z.object({ listing: listingSchema.extend({ description: z.string(), amenities: z.array(z.string()) }), synthetic: z.literal(true), presentation: z.enum(["cards", "comparison"]) }),
 ]);
 
 const suggestions = [
@@ -53,8 +54,26 @@ function safeToolListings(part: UIMessage["parts"][number]) {
   if (part.type !== "tool-call" || part.state !== "complete" || part.output === undefined) return [];
   const parsed = toolOutputSchema.safeParse(part.output);
   if (!parsed.success) return [];
+  if (parsed.data.presentation === "comparison") return [];
   return "listings" in parsed.data ? parsed.data.listings : [parsed.data.listing];
 }
+
+const markdownComponents = {
+  p: ({ children, ...props }) => <p {...props} className="my-2 first:mt-0 last:mb-0">{children}</p>,
+  strong: ({ children, ...props }) => <strong {...props} className="font-extrabold text-ink">{children}</strong>,
+  ul: ({ children, ...props }) => <ul {...props} className="my-2 list-disc space-y-1 pl-5">{children}</ul>,
+  ol: ({ children, ...props }) => <ol {...props} className="my-2 list-decimal space-y-1 pl-5">{children}</ol>,
+  table: ({ children, ...props }) => <div className="my-3 overflow-x-auto rounded-xl border border-line bg-paper shadow-sm"><table {...props} className="w-full min-w-[560px] border-collapse text-left text-[12px] leading-5">{children}</table></div>,
+  thead: ({ children, ...props }) => <thead {...props} className="bg-teal text-white">{children}</thead>,
+  tbody: ({ children, ...props }) => <tbody {...props} className="divide-y divide-line">{children}</tbody>,
+  tr: ({ children, ...props }) => <tr {...props} className="transition-colors even:bg-[#f7f5ee] hover:bg-teal/5">{children}</tr>,
+  th: ({ children, ...props }) => <th {...props} className="whitespace-nowrap px-3 py-2.5 text-[10px] font-extrabold uppercase tracking-[0.08em]">{children}</th>,
+  td: ({ children, ...props }) => <td {...props} className="px-3 py-2.5 align-top text-ink first:font-bold">{children}</td>,
+  a: ({ children, href }) => {
+    const safeHref = typeof href === "string" && /^\/listings\/[a-z0-9-]+$/.test(href) ? href : null;
+    return safeHref ? <Link href={safeHref} className="font-bold text-teal underline decoration-teal/30 underline-offset-2 hover:text-teal-dark">{children}</Link> : <span>{children}</span>;
+  },
+} satisfies MarkdownComponents;
 
 function AdvisorListingCards({ listings }: { listings: z.infer<typeof listingSchema>[] }) {
   if (!listings.length) return null;
@@ -68,7 +87,7 @@ export function AdvisorMessage({ message }: { message: UIMessage }) {
   const listings = [...new Map(message.parts.flatMap(safeToolListings).map((listing) => [listing.slug, listing])).values()].slice(0, 5);
   if (!text && !toolIsRunning && !listings.length) return null;
   const user = message.role === "user";
-  return <div className={user ? "ml-10" : "mr-4"}>{(text || toolIsRunning) && <div className={user ? "rounded-2xl rounded-br-md bg-teal px-3.5 py-2.5 text-sm leading-6 text-white" : "rounded-2xl rounded-bl-md border border-line bg-white px-3.5 py-2.5 text-sm leading-6 whitespace-pre-wrap text-ink"}>{text || <span className="inline-flex items-center gap-2 text-muted-copy"><Sparkles size={14}/>Searching HomeScope listings…</span>}</div>}{!user && <AdvisorListingCards listings={listings}/>}</div>;
+  return <div className={user ? "ml-10" : "mr-4"}>{(text || toolIsRunning) && <div className={user ? "rounded-2xl rounded-br-md bg-teal px-3.5 py-2.5 text-sm leading-6 whitespace-pre-wrap text-white" : "rounded-2xl rounded-bl-md border border-line bg-white px-3.5 py-2.5 text-sm leading-6 text-ink"}>{text ? user ? text : <Markdown components={markdownComponents}>{text}</Markdown> : <span className="inline-flex items-center gap-2 text-muted-copy"><Sparkles size={14}/>Searching HomeScope listings…</span>}</div>}{!user && <AdvisorListingCards listings={listings}/>}</div>;
 }
 
 function LockedPanel({ close }: { close: () => void }) {

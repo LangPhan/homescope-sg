@@ -31,6 +31,9 @@ importers:
       '@tanstack/ai-react':
         specifier: ^1.0.2
         version: 1.0.2(@tanstack/ai@1.1.0(zod@4.6.7))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(zod@4.6.7)
+      '@tanstack/markdown':
+        specifier: ^1.2.0
+        version: 1.2.0(react@19.3.1)
       '@tanstack/react-query':
         specifier: ^5.90.6
         version: 5.105.3(@types/react@19.3.0)(react@19.3.1)
@@ -920,6 +923,17 @@ packages:
 
   '@tanstack/markdown@0.0.13':
     resolution: {integrity: sha512-ZSQP2ulBvlPzdpZeRheBJnaELo7e4ET/D/XrfgweHyqhhLMN5vUJJAUl7ufSRd7GlfO/vwdzjKPh0E0JwqJkDA==}
+    peerDependencies:
+      octane: '>=0.1.12'
+      react: '>=18'
+    peerDependenciesMeta:
+      octane:
+        optional: true
+      react:
+        optional: true
+
+  '@tanstack/markdown@1.2.0':
+    resolution: {integrity: sha512-8ZaMDLvp7iUuo7R5Ot+yvX/h1ZN8Cq2p38iL+X9uOkIKVFw3IjgP62dXT6+dp/Nk522qsuSDCJNdt2F4fZvVXQ==}
     peerDependencies:
       octane: '>=0.1.12'
       react: '>=18'
@@ -2580,6 +2594,10 @@ snapshots:
   '@tanstack/intent@0.5.6': {}
 
   '@tanstack/markdown@0.0.13(react@19.3.1)':
+    optionalDependencies:
+      react: 19.3.1
+
+  '@tanstack/markdown@1.2.0(react@19.3.1)':
     optionalDependencies:
       react: 19.3.1
 

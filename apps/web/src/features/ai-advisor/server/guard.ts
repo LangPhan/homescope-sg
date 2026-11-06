@@ -39,6 +39,16 @@ export function isAllowedCategory(category: Classification["category"]): boolean
   return (allowedCategories as readonly string[]).includes(category);
 }
 
+const comparisonIntentPattern = /\b(compare|comparison|versus|vs\.?|differences?|which\s+(?:home|listing|property|option)\s+is\s+(?:the\s+)?(?:better|best))\b/i;
+
+export function normalizeBusinessClassification(classification: Classification): Classification {
+  if (classification.category !== "property_search" || !comparisonIntentPattern.test(classification.normalized_query)) {
+    return classification;
+  }
+
+  return { ...classification, category: "listing_comparison" };
+}
+
 export function refusalFor(classification: Classification): string {
   if (classification.category === "prompt_injection") {
     return "I can’t follow requests to change my rules or reveal system prompts or secrets. I can help you find, compare, and understand HomeScope’s synthetic listings.";
