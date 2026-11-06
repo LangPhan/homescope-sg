@@ -1,3 +1,11 @@
 import { MetadataRoute } from "next";
-import { demoListings } from "@/shared/api";
-export default function sitemap(): MetadataRoute.Sitemap { const base=process.env.APP_URL||"http://localhost:3000"; return [{url:base,priority:1},{url:`${base}/search`,priority:.9},{url:`${base}/engineering`,priority:.7},...demoListings.map(item=>({url:`${base}/listings/${item.slug}`,priority:.8}))]; }
+import { getListings } from "@/shared/api";
+
+export const revalidate = 300;
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const base = process.env.APP_URL || "http://localhost:3000";
+  const { data } = await getListings({ view: "map", limit: "300" });
+  return ["/", "/search", "/resale", "/engineering", ...data.map((item) => `/listings/${item.slug}`)]
+    .map((path) => ({ url: new URL(path, base).href }));
+}

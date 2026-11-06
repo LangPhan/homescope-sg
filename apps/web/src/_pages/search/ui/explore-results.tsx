@@ -1,8 +1,8 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { ListingCard, ListingCardSkeleton } from "@/entities/listing";
-import { type SearchFilters } from "@/shared/api";
+import { getListings, type SearchFilters } from "@/shared/api";
 import { searchListingQueries } from "../api/listing-query";
 import { PropertyMap } from "./property-map";
 import { SaveSearchButton } from "./save-search-button";
@@ -36,6 +36,11 @@ export function ExploreResults({ filters }: { filters: SearchFilters }) {
     return [...unique.values()];
   }, [query.data?.pages]);
   const total = query.data?.pages[0]?.meta.total;
+  const mapQuery = useQuery({
+    queryKey: ["map-listings", filters],
+    queryFn: () => getListings({ ...filters, cursor: undefined, view: "map", limit: "300" }),
+    staleTime: 30_000,
+  });
 
   const updateHeaderState = useCallback(() => {
     const panel = panelRef.current;
@@ -150,6 +155,6 @@ export function ExploreResults({ filters }: { filters: SearchFilters }) {
         </div>
       </> : <div className="px-5 py-20 text-center"><h2 className="font-serif text-[2.4rem] tracking-[-.035em]">No homes in this view</h2><p className="text-muted-copy">Try widening your budget or removing a filter.</p></div>}
     </section>
-    {query.isPending ? <div className="min-h-[500px] animate-pulse bg-[#e8ece8] max-[900px]:h-[55vh]"/> : <PropertyMap listings={listings} onNavigate={rememberSearchJourney}/>}
+    {mapQuery.isPending ? <div className="min-h-[500px] animate-pulse bg-[#e8ece8] max-[900px]:h-[55vh]"/> : mapQuery.isError ? <button onClick={() => mapQuery.refetch()}>Reload map results</button> : <PropertyMap listings={mapQuery.data.data} onNavigate={rememberSearchJourney}/>}
   </>;
 }

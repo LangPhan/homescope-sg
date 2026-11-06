@@ -5,7 +5,7 @@ export type Listing = {
   address: string;
   district: string;
   property_type: string;
-  tenure: string;
+  tenure: string | null;
   price: number;
   psf: number;
   bedrooms: number;
@@ -14,7 +14,9 @@ export type Listing = {
   latitude: number;
   longitude: number;
   mrt_name: string;
-  mrt_distance: number;
+  mrt_distance: number | null;
+  source_url?: string | null;
+  subtype?: string;
   image_url: string;
   is_featured?: boolean;
   listed_at?: string;
@@ -33,6 +35,8 @@ export type ListingResponse = {
 export type SearchFilters = {
   q?: string;
   property_type?: string;
+  subtype?: string;
+  view?: "map";
   min_price?: string;
   max_price?: string;
   bedrooms?: string;

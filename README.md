@@ -2,7 +2,7 @@
 
 HomeScope SG is an independent, full-stack Singapore property portal case study. It is designed around the core engineering problems in the PropNex Senior Fullstack Engineer role: fast multi-filter search, map viewport queries, SSR property pages, secure accounts, a guarded AI property advisor, caching, data synchronisation and reproducible delivery.
 
-> Portfolio disclaimer: The demo catalogue uses synthetic listings, agents and transactions. The separate `/resale` page shows completed HDB resale transactions from data.gov.sg. HomeScope is independent of PropNex Limited.
+> The catalogue is a snapshot of 300 PropNex sale listings. Check the original listing for current availability. The separate `/resale` page shows completed HDB transactions from data.gov.sg. HomeScope is independent of PropNex Limited.
 
 ## Reviewer quick start
 
@@ -11,9 +11,9 @@ cp .env.example .env
 docker compose up --build
 ```
 
-Open [http://localhost:8080](http://localhost:8080). The first API boot creates the schema and deterministically seeds 300 listings. Demo login: `demo@homescope.sg` / `DemoPass123!`.
+Open [http://localhost:8080](http://localhost:8080). The first API boot creates the schema and imports the 300-listing snapshot. Demo login: `demo@homescope.sg` / `DemoPass123!`.
 
-The Next.js UI also has a small fallback dataset, so `pnpm install && pnpm dev` remains visually reviewable while the API is offline.
+Run the PHP API alongside Next.js to browse the catalogue. On API startup the import archives the previous synthetic seed records and loads the current snapshot.
 
 ## Architecture
 
