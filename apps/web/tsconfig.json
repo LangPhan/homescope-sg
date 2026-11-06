@@ -25,6 +25,7 @@
     "paths": {
       "@/_app/*": ["./src/_app/*"],
       "@/_pages/*": ["./src/_pages/*"],
+      "@/features/*": ["./src/features/*"],
       "@/entities/*": ["./src/entities/*"],
       "@/shared/*": ["./src/shared/*"]
     }

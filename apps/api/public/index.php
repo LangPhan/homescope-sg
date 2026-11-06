@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 use HomeScope\Controller\AccountController;
+use HomeScope\Controller\AiController;
 use HomeScope\Controller\AuthController;
 use HomeScope\Controller\ListingController;
 use HomeScope\Http;
@@ -20,6 +21,6 @@ $app->group('/v1',function(RouteCollectorProxy $api) use($container){
     $api->get('/health',fn($r,$res)=>Http::json($res,['status'=>'ok','service'=>'homescope-api','time'=>gmdate(DATE_ATOM)]));
     $api->get('/listings',[ListingController::class,'index']);$api->get('/listings/{slug:[a-z0-9-]+}',[ListingController::class,'show']);
     $api->post('/auth/register',[AuthController::class,'register']);$api->post('/auth/login',[AuthController::class,'login']);$api->post('/auth/refresh',[AuthController::class,'refresh']);$api->post('/auth/logout',[AuthController::class,'logout']);
-    $api->group('/me',function(RouteCollectorProxy $me){$me->get('/favourites',[AccountController::class,'favourites']);$me->post('/favourites/{id:[0-9]+}',[AccountController::class,'addFavourite']);$me->delete('/favourites/{id:[0-9]+}',[AccountController::class,'deleteFavourite']);$me->get('/saved-searches',[AccountController::class,'searches']);$me->post('/saved-searches',[AccountController::class,'addSearch']);$me->delete('/saved-searches/{id:[0-9]+}',[AccountController::class,'deleteSearch']);})->add(new AuthMiddleware());
+    $api->group('/me',function(RouteCollectorProxy $me){$me->post('/ai-authorize',[AiController::class,'authorize']);$me->get('/favourites',[AccountController::class,'favourites']);$me->post('/favourites/{id:[0-9]+}',[AccountController::class,'addFavourite']);$me->delete('/favourites/{id:[0-9]+}',[AccountController::class,'deleteFavourite']);$me->get('/saved-searches',[AccountController::class,'searches']);$me->post('/saved-searches',[AccountController::class,'addSearch']);$me->delete('/saved-searches/{id:[0-9]+}',[AccountController::class,'deleteSearch']);})->add(new AuthMiddleware());
 });
 $app->run();

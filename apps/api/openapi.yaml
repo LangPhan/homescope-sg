@@ -39,6 +39,15 @@ paths:
     post:
       summary: Rotate refresh token
       responses: { '200': { description: Rotated access token, user profile and refresh cookie }, '401': { description: Invalid session } }
+  /me/ai-authorize:
+    post:
+      summary: Authorize one authenticated AI advisor request
+      description: Applies per-user Redis quotas of 10 requests per minute and 100 per UTC day.
+      security: [{ bearerAuth: [] }]
+      responses:
+        '204': { description: Authorized }
+        '401': { description: Missing or invalid access token }
+        '429': { description: AI advisor quota exceeded }
   /me/favourites:
     get:
       security: [{ bearerAuth: [] }]
