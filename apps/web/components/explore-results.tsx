@@ -6,16 +6,21 @@ import { ListingCardSkeleton } from "@/components/listing-card-skeleton";
 import { PropertyMap } from "@/components/property-map";
 import { SaveSearchButton } from "@/components/save-search-button";
 import { getListings } from "@/lib/api";
-import { ListingResponse, SearchFilters } from "@/lib/types";
+import { SearchFilters } from "@/lib/types";
 
 const PAGE_SIZE = "20";
 
-export function ExploreResults({ initialResult, filters }: { initialResult: ListingResponse; filters: SearchFilters }) {
+export function ExploreResults({ filters }: { filters: SearchFilters }) {
   const panelRef = useRef<HTMLElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const sentinelRef = useRef<HTMLDivElement>(null);
   const restoredKeyRef = useRef<string | null>(null);
   const persistFrameRef = useRef<number | null>(null);
+  const returningFromDetailRef = useRef<boolean | null>(null);
+  if (returningFromDetailRef.current === null && typeof window !== "undefined") {
+    returningFromDetailRef.current = sessionStorage.getItem("homescope:returning-from-detail") === "true";
+  }
+  const returningFromDetail = returningFromDetailRef.current === true;
   const [headerDocked, setHeaderDocked] = useState(false);
   const storageKey = useMemo(() => {
     const params = new URLSearchParams(Object.entries(filters).filter(([, value]) => value).map(([key, value]) => [key, String(value)]));
@@ -27,13 +32,18 @@ export function ExploreResults({ initialResult, filters }: { initialResult: List
     queryFn: ({ pageParam }) => getListings({ ...filters, cursor: pageParam || undefined, limit: PAGE_SIZE }),
     initialPageParam: null as string | null,
     getNextPageParam: (lastPage) => lastPage.meta.next_cursor,
-    initialData: { pages: [initialResult], pageParams: [null] }
+    staleTime: 30_000,
+    gcTime: 30 * 60_000,
+    refetchOnMount: returningFromDetail ? false : true,
+    refetchOnWindowFocus: returningFromDetail ? false : true,
+    refetchOnReconnect: returningFromDetail ? false : true
   });
 
   const listings = useMemo(() => {
-    const unique = new Map(query.data.pages.flatMap((page) => page.data).map((listing) => [listing.id, listing]));
+    const unique = new Map((query.data?.pages || []).flatMap((page) => page.data).map((listing) => [listing.id, listing]));
     return [...unique.values()];
-  }, [query.data.pages]);
+  }, [query.data?.pages]);
+  const total = query.data?.pages[0]?.meta.total;
 
   const updateHeaderState = useCallback(() => {
     const panel = panelRef.current;
@@ -65,7 +75,14 @@ export function ExploreResults({ initialResult, filters }: { initialResult: List
     writePosition();
     sessionStorage.setItem("homescope:return-to-search", `${window.location.pathname}${window.location.search}`);
     sessionStorage.setItem("homescope:navigated-from-search", "true");
+    sessionStorage.removeItem("homescope:returning-from-detail");
   }, [writePosition]);
+
+  useEffect(() => {
+    if (!returningFromDetail) return;
+    const timer = window.setTimeout(() => sessionStorage.removeItem("homescope:returning-from-detail"), 1_000);
+    return () => window.clearTimeout(timer);
+  }, [returningFromDetail]);
 
   useEffect(() => {
     const siteHeader = document.querySelector<HTMLElement>(".site-header");
@@ -118,10 +135,10 @@ export function ExploreResults({ initialResult, filters }: { initialResult: List
   return <>
     <section className="results-panel" ref={panelRef} onScroll={persistPosition}>
       <div className={`results-head${headerDocked ? " is-docked" : ""}`} ref={headerRef}>
-        <div><div className="eyebrow">Explore Singapore</div><h1>{initialResult.meta.total} homes match</h1></div>
+        <div><div className="eyebrow">Explore Singapore</div><h1>{total === undefined ? "Finding homes…" : `${total} homes match`}</h1></div>
         <div className="results-actions"><SaveSearchButton filters={filters}/><span className="pill">Map + list</span></div>
       </div>
-      {listings.length ? <>
+      {query.isPending ? <div className="search-results">{Array.from({ length: 6 }, (_, index) => <ListingCardSkeleton key={index}/>)}</div> : query.isError && !query.data ? <div className="infinite-status"><button className="button button-ghost" onClick={() => query.refetch()}>Try loading homes again</button></div> : listings.length ? <>
         <div className="search-results">
           {listings.map((listing) => <ListingCard key={listing.id} listing={listing} onNavigate={rememberSearchJourney}/>)}
           {query.isFetchingNextPage && Array.from({ length: 4 }, (_, index) => <ListingCardSkeleton key={`skeleton-${index}`}/>)}
@@ -132,6 +149,6 @@ export function ExploreResults({ initialResult, filters }: { initialResult: List
         </div>
       </> : <div style={{ padding: "80px 20px", textAlign: "center" }}><h2 className="serif" style={{ fontSize: "2.4rem" }}>No homes in this view</h2><p className="muted">Try widening your budget or removing a filter.</p></div>}
     </section>
-    <PropertyMap listings={listings}/>
+    {query.isPending ? <div className="map-panel skeleton-block"/> : <PropertyMap listings={listings}/>}
   </>;
 }

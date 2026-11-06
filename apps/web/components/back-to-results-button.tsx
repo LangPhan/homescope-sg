@@ -8,8 +8,13 @@ export function BackToResultsButton() {
     const cameFromSearch = sessionStorage.getItem("homescope:navigated-from-search") === "true";
     const returnUrl = sessionStorage.getItem("homescope:return-to-search") || "/search";
     sessionStorage.removeItem("homescope:navigated-from-search");
-    if (cameFromSearch && window.history.length > 1) router.back();
-    else router.push(returnUrl);
+    if (cameFromSearch && window.history.length > 1) {
+      sessionStorage.setItem("homescope:returning-from-detail", "true");
+      router.back();
+    } else {
+      sessionStorage.removeItem("homescope:returning-from-detail");
+      router.push(returnUrl);
+    }
   }
   return <button type="button" className="back-to-results" onClick={goBack} aria-label="Back to search results"><ArrowLeft size={16}/> Back</button>;
 }
