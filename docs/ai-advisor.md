@@ -20,7 +20,7 @@ sequenceDiagram
   W->>W: Size limits + deterministic injection guard
   W->>A: Strict-schema business classifier
   alt Allowed property category
-    W->>A: Advisor stream with two read-only tools
+    W->>A: Advisor stream with read-only tools
     A->>W: search_listings / get_listing_detail
     W->>L: Validated internal catalogue request
     L-->>W: Sanitized synthetic listing data
@@ -59,7 +59,7 @@ If 9Router is unavailable, `/api/ai/chat` returns `503`; the drawer retains its 
 - The classifier normalizes an allowed request into validated English; the advisor and all local refusal messages answer in English only.
 - Only `property_search`, `listing_comparison`, `market_explanation` and `product_help` continue. Coding, politics, general knowledge, personalized legal/financial advice and prompt injection are refused.
 - The advisor receives only the current allowed user message plus validated pathname/filter data. Previously blocked content is not trusted conversation context.
-- Tools are an allowlist of two server-side read-only functions. Tool schemas reject unknown keys, arbitrary URLs, invalid slugs, unsupported property types and result limits above eight.
+- Tools are an allowlist of three server-side read-only functions. The two catalogue tools validate slugs, filters and result limits. The HDB tool validates an optional town and queries a fixed government dataset for up to ten completed sales.
 - Tool output removes agent contact data, creates only same-origin `/listings/{slug}` links and is validated again before listing cards render.
 - Model text is rendered as escaped React text, never raw HTML. Listing cards are constructed only from validated tool output.
 - Logs include request ID, category, model, latency, tool name, result count and usage. They omit messages, JWTs, system prompts and API keys.

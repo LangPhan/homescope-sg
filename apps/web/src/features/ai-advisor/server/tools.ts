@@ -1,5 +1,6 @@
 import { toolDefinition } from "@tanstack/ai";
 import { z } from "zod";
+import { getHdbResales, hdbTownSchema } from "@/shared/api/hdb-resale";
 
 const listingCardSchema = z.object({
   slug: z.string(),
@@ -91,6 +92,23 @@ export const getListingDetailDefinition = toolDefinition({
   outputSchema: z.object({ listing: listingCardSchema.extend({ description: z.string(), amenities: z.array(z.string()) }), synthetic: z.literal(true), presentation: z.enum(["cards", "comparison"]) }),
 });
 
+const lookupHdbResales = toolDefinition({
+  name: "lookup_hdb_resales",
+  description: "Look up up to ten recent completed HDB resale transactions, optionally for an exact HDB town. Prices are in SGD and areas in square metres.",
+  inputSchema: z.object({ town: hdbTownSchema.optional() }).strict(),
+}).server(async ({ town }, context) => {
+  try {
+    return {
+      status: "ok",
+      kind: "historical_hdb_transactions",
+      href: town ? `/resale?${new URLSearchParams({ town })}` : "/resale",
+      transactions: await getHdbResales(town, context?.abortSignal),
+    };
+  } catch {
+    return { status: "unavailable" };
+  }
+});
+
 export function createAdvisorTools(requestId: string, presentation: "cards" | "comparison" = "cards") {
   const searchListings = searchListingsDefinition.server(async (input, context) => {
     const startedAt = performance.now();
@@ -126,5 +144,5 @@ export function createAdvisorTools(requestId: string, presentation: "cards" | "c
     return { listing, synthetic: true as const, presentation };
   });
 
-  return [searchListings, getListingDetail] as const;
+  return [searchListings, getListingDetail, lookupHdbResales] as const;
 }

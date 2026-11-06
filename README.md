@@ -2,7 +2,7 @@
 
 HomeScope SG is an independent, full-stack Singapore property portal case study. It is designed around the core engineering problems in the PropNex Senior Fullstack Engineer role: fast multi-filter search, map viewport queries, SSR property pages, secure accounts, a guarded AI property advisor, caching, data synchronisation and reproducible delivery.
 
-> Portfolio disclaimer: HomeScope uses synthetic listings, agents and transactions. It is not affiliated with or endorsed by PropNex Limited.
+> Portfolio disclaimer: The demo catalogue uses synthetic listings, agents and transactions. The separate `/resale` page shows completed HDB resale transactions from data.gov.sg. HomeScope is independent of PropNex Limited.
 
 ## Reviewer quick start
 
@@ -42,7 +42,7 @@ flowchart LR
 3. `/listings/{slug}` returns the listing, agent and transaction history and renders metadata, canonical URL and JSON-LD on the server.
 4. Registration/login issues a 15-minute JWT. The seven-day random refresh token is hashed at rest, stored in an HttpOnly cookie and rotated on use.
 5. `/engineering` explains the vertical slice and makes performance/security trade-offs visible to a technical reviewer.
-6. The floating HomeScope AI drawer is locked to authenticated users, streams through TanStack AI and can only query synthetic listings through two read-only tools.
+6. The floating HomeScope AI drawer streams through TanStack AI for authenticated users. It can query the demo catalogue and look up historical HDB resale prices.
 
 ## AI property advisor
 
@@ -56,7 +56,7 @@ NINE_ROUTER_API_KEY=<dedicated-homescope-key>
 
 Do not use a `NEXT_PUBLIC_*` name for the key. Docker maps `host.docker.internal` to the host gateway on Linux. Production can point the same variables at a secured OpenAI-compatible gateway; there is no automatic provider fallback.
 
-Before any model call, PHP validates the JWT and applies Redis quotas of 10 messages/minute and 100/day per user. A deterministic injection guard and a separate strict-schema classifier then allow only property search, listing comparison, market explanation and HomeScope product help. The advisor can call only `search_listings` and `get_listing_detail`; both validate arguments and return synthetic catalogue data. See [the AI architecture and security notes](docs/ai-advisor.md).
+Before any model call, PHP validates the JWT and applies Redis quotas of 10 messages/minute and 100/day per user. A deterministic injection guard and a separate strict-schema classifier then allow only property search, listing comparison, market explanation and HomeScope product help. The read-only `search_listings` and `get_listing_detail` tools query the demo catalogue. `lookup_hdb_resales` retrieves up to ten recent registered sales, optionally filtered by HDB town. See [the AI architecture and security notes](docs/ai-advisor.md).
 
 ## API examples
 
