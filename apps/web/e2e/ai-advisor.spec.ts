@@ -36,9 +36,10 @@ test("authenticated chat streams and survives page navigation", async ({ page },
   await page.getByLabel("Message HomeScope AI").fill("Find a 2 bedroom condo near MRT");
   await page.getByRole("button", { name: "Send message" }).click();
   await expect(page.getByText(/matching synthetic HomeScope homes/)).toBeVisible();
-  await page.getByRole("link", { name: "Explore homes" }).click();
+  const navigation = page.getByRole("navigation", { name: "Main navigation" });
+  await navigation.getByRole("link", { name: "Explore homes" }).click();
   await expect(page).toHaveURL(/\/search/);
-  await page.getByRole("link", { name: "Engineering" }).click();
+  await navigation.getByRole("link", { name: "Engineering" }).click();
   await expect(page).toHaveURL(/\/engineering/);
   await expect(page.getByText("Find a 2 bedroom condo near MRT")).toBeVisible();
   await expect(page.getByText(/matching synthetic HomeScope homes/)).toBeVisible();
