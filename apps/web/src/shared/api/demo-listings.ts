@@ -1,6 +1,6 @@
 import { Listing } from "./listing";
 
-const images = [
+export const demoPropertyPhotos = [
   "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=1400&q=85",
   "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=1400&q=85",
   "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1400&q=85",
@@ -8,6 +8,8 @@ const images = [
   "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1400&q=85",
   "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=1400&q=85"
 ];
+
+const images = demoPropertyPhotos;
 
 const base: Omit<Listing, "id" | "slug" | "image_url">[] = [
   { title: "Marina One Residences", address: "23 Marina Way", district: "D01", property_type: "Condo", tenure: "99-year", price: 2380000, psf: 2416, bedrooms: 2, bathrooms: 2, floor_area: 985, latitude: 1.2776, longitude: 103.8547, mrt_name: "Downtown", mrt_distance: 220 },
