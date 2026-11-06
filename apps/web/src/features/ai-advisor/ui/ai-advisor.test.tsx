@@ -1,8 +1,8 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AuthSessionProvider, useAuthSession } from "@/shared/auth";
-import { AiAdvisor } from "./ai-advisor";
-import { sessionStoragePersistence } from "@tanstack/ai-react";
+import { AdvisorMessage, AiAdvisor } from "./ai-advisor";
+import { sessionStoragePersistence, type UIMessage } from "@tanstack/ai-react";
 
 function tokenFor(name: string, email: string) {
   const header = btoa(JSON.stringify({ alg: "none", typ: "JWT" })).replaceAll("=", "");
@@ -17,6 +17,15 @@ function LogoutButton() {
 
 function renderAdvisor(withLogout = false) {
   return render(<AuthSessionProvider><AiAdvisor />{withLogout && <LogoutButton />}</AuthSessionProvider>);
+}
+
+function toolMessage(state: "input-complete" | "complete", output?: unknown): UIMessage {
+  return {
+    id: `tool-${state}`,
+    role: "assistant",
+    parts: [{ type: "tool-call", id: "search-1", name: "search_listings", arguments: "{}", state, output }],
+    createdAt: new Date(),
+  };
 }
 
 describe("AiAdvisor", () => {
@@ -59,5 +68,39 @@ describe("AiAdvisor", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Open HomeScope AI" }));
     fireEvent.click(screen.getByRole("button", { name: "Test logout" }));
     await waitFor(() => expect(sessionStorage.getItem(key)).toBeNull());
+  });
+
+  it("shows the search status only while a listing tool is running", () => {
+    const { rerender } = render(<AdvisorMessage message={toolMessage("input-complete")} />);
+    expect(screen.getByText("Searching HomeScope listings…")).toBeInTheDocument();
+
+    rerender(<AdvisorMessage message={toolMessage("complete", { listings: [], synthetic: true })} />);
+    expect(screen.queryByText("Searching HomeScope listings…")).not.toBeInTheDocument();
+  });
+
+  it("renders completed listing cards without a stale search status", () => {
+    render(<AdvisorMessage message={toolMessage("complete", {
+      synthetic: true,
+      listings: [{
+        slug: "queenstown-loft-36",
+        title: "Queenstown Loft 36",
+        address: "36 Queensway",
+        district: "D03",
+        property_type: "Condo",
+        tenure: "99-year",
+        price: 460000,
+        psf: 524,
+        bedrooms: 2,
+        bathrooms: 2,
+        floor_area: 877,
+        mrt_name: "Queenstown MRT",
+        mrt_distance: 592,
+        image_url: "https://images.unsplash.com/demo",
+        href: "/listings/queenstown-loft-36",
+      }],
+    })} />);
+
+    expect(screen.getByRole("link", { name: /Queenstown Loft 36/ })).toHaveAttribute("href", "/listings/queenstown-loft-36");
+    expect(screen.queryByText("Searching HomeScope listings…")).not.toBeInTheDocument();
   });
 });
