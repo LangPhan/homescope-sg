@@ -104,6 +104,23 @@ Set `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in `.env` and restrict the key to your dep
 
 The intended near-zero-cost deployment is one OCI Always Free VM with Docker Compose and a TLS reverse proxy. GitHub Actions builds versioned images in GHCR, connects with `OCI_HOST`, `OCI_USER`, `OCI_SSH_KEY`, deploys `/opt/homescope`, then smoke-tests `APP_DOMAIN/api/v1/health`. Secrets never enter Git or image layers.
 
+## Monitoring and logging
+
+The optional `observability` Compose profile runs Prometheus, Loki, Grafana and Grafana Alloy entirely on the Docker host. Alloy scrapes HomeScope, host, container, MySQL and Redis metrics and ships Docker logs to Loki. Grafana is the only component with a host port, bound to `127.0.0.1`.
+
+```bash
+# Core backend only; keep using pnpm dev/start for the frontend while developing.
+docker compose up -d mysql redis api edge
+
+# Full application plus monitoring. Override the port locally if Next uses 3001.
+GRAFANA_PORT=3301 docker compose --profile observability up -d
+
+# Production access from your workstation.
+ssh -L 3001:127.0.0.1:3001 <user>@<host>
+```
+
+Open `http://localhost:3001` after the tunnel. Anonymous access and signup are disabled. Production must provide `GRAFANA_ADMIN_PASSWORD`, `MYSQL_EXPORTER_PASSWORD`, `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`. See [the observability runbook](docs/observability.md) for dashboards, SLOs, request-ID lookup, PromQL/LogQL examples and alert handling.
+
 ## Intentional boundaries
 
 This portfolio slice omits payments, human chat, CMS and real listing ingestion. The AI advisor has no web access, no code execution and no durable conversation database. Enquiries are non-sending UI. The focus is the quality of one representative end-to-end journey rather than feature count.

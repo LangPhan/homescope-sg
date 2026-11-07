@@ -30,8 +30,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker compose config
+      - run: docker compose --profile observability config
       - run: docker build -f apps/api/Dockerfile apps/api
       - run: docker build -f apps/web/Dockerfile .
+      - name: Validate observability configuration
+        run: |
+          find infra/observability/grafana/dashboards -name '*.json' -print0 | xargs -0 -n1 jq empty
+          docker run --rm --entrypoint promtool -v "$PWD/infra/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro" prom/prometheus:v3.7.3 check config /etc/prometheus/prometheus.yml
+          docker run --rm -v "$PWD/infra/observability/loki/loki.yml:/etc/loki/loki.yml:ro" grafana/loki:3.5.7 -verify-config -config.file=/etc/loki/loki.yml
+          docker run --rm -v "$PWD/infra/observability/alloy/config.alloy:/etc/alloy/config.alloy:ro" grafana/alloy:v1.11.3 fmt --test /etc/alloy/config.alloy
+      - name: Validate Grafana provisioning
+        run: |
+          GRAFANA_PORT=3301 docker compose --profile observability up -d prometheus loki grafana
+          curl --fail --retry 30 --retry-delay 2 http://127.0.0.1:3301/api/health
+          test "$(curl --fail --silent --user admin:homescope-grafana-local http://127.0.0.1:3301/api/v1/provisioning/alert-rules | jq length)" -eq 8
+      - if: always()
+        run: docker compose --profile observability down --volumes
   e2e:
     runs-on: ubuntu-latest
     steps:

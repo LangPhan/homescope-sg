@@ -128,6 +128,7 @@ services:
     ports:
       - "127.0.0.1:${GRAFANA_PORT:-3001}:3000"
     environment:
+      APP_ENV: ${APP_ENV:-local}
       GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-homescope-grafana-local}
       GF_USERS_ALLOW_SIGN_UP: "false"
