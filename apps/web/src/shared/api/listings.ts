@@ -1,11 +1,17 @@
 import { Listing, ListingResponse, SearchFilters } from "./listing";
 import { demoPropertyPhotos } from "./demo-listings";
+import { originRequestHeaders, serverApiBaseUrl } from "./origin";
 
 const publicApiUrl = process.env.NEXT_PUBLIC_API_URL || "/api/v1";
-export const API_URL = typeof window === "undefined"
-  ? process.env.API_INTERNAL_URL || process.env.API_PROXY_URL ||
-    (/^https?:\/\//i.test(publicApiUrl) ? publicApiUrl : "http://localhost:8080/api/v1")
-  : publicApiUrl;
+export const API_URL = publicApiUrl;
+
+function requestApiUrl(): string {
+  return typeof window === "undefined" ? serverApiBaseUrl() : publicApiUrl;
+}
+
+function serverHeaders(): HeadersInit | undefined {
+  return typeof window === "undefined" ? originRequestHeaders() : undefined;
+}
 
 function withIllustrativePhotos(listing: Listing): Listing {
   if (!listing.source_url || listing.image_url !== "/listing-placeholder.svg") return listing;
@@ -23,7 +29,7 @@ function withIllustrativePhotos(listing: Listing): Listing {
 export async function getListings(filters: SearchFilters = {}): Promise<ListingResponse> {
   const params = new URLSearchParams(Object.entries(filters).filter(([, value]) => value).map(([key, value]) => [key, String(value)]));
   try {
-    const response = await fetch(`${API_URL}/listings?${params}`, { next: { revalidate: 30 }, signal: AbortSignal.timeout(2500) });
+    const response = await fetch(`${requestApiUrl()}/listings?${params}`, { headers: serverHeaders(), next: { revalidate: 30 }, signal: AbortSignal.timeout(2500) });
     if (!response.ok) throw new Error("API unavailable");
     const result: ListingResponse = await response.json();
     return { ...result, data: result.data.map(withIllustrativePhotos) };
@@ -34,7 +40,7 @@ export async function getListings(filters: SearchFilters = {}): Promise<ListingR
 }
 
 export async function getListing(slug: string): Promise<Listing | null> {
-  const response = await fetch(`${API_URL}/listings/${encodeURIComponent(slug)}`, { next: { revalidate: 60 }, signal: AbortSignal.timeout(2500) });
+  const response = await fetch(`${requestApiUrl()}/listings/${encodeURIComponent(slug)}`, { headers: serverHeaders(), next: { revalidate: 60 }, signal: AbortSignal.timeout(2500) });
   if (response.status === 404) return null;
   if (!response.ok) throw new Error(`Listing API returned ${response.status}`);
   const result: { data: Listing } = await response.json();
