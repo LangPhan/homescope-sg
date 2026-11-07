@@ -1,0 +1,12 @@
+services:
+  edge:
+    ports: !override
+      - "127.0.0.1:8080:80"
+  web:
+    environment:
+      APP_ENV: production
+      APP_URL: ${APP_URL:?Set APP_URL to the Vercel production URL}
+  api:
+    environment:
+      APP_ENV: production
+      COOKIE_SECURE: "true"
