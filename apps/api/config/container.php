@@ -7,6 +7,7 @@ use HomeScope\CounterStore;
 use HomeScope\Repository\ListingRepository;
 use HomeScope\Service\AuthService;
 use HomeScope\Service\AiQuotaService;
+use Psr\Log\LoggerInterface;
 
 $builder=new ContainerBuilder();
 $builder->addDefinitions([
@@ -15,5 +16,6 @@ $builder->addDefinitions([
     AuthService::class=>fn($c)=>new AuthService($c->get(\PDO::class)),
     CounterStore::class=>fn($c)=>$c->get(Cache::class),
     AiQuotaService::class=>fn($c)=>new AiQuotaService($c->get(CounterStore::class)),
+    LoggerInterface::class=>fn()=>(new HomeScope\LoggerFactory())(),
 ]);
 return $builder->build();

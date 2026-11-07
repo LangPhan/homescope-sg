@@ -2,6 +2,7 @@ import { toolDefinition } from "@tanstack/ai";
 import { z } from "zod";
 import { getHdbResales, hdbTownSchema } from "@/shared/api/hdb-resale";
 import { resolvePlace } from "./places";
+import { logEvent } from "@/shared/observability/logger";
 
 const listingCardSchema = z.object({
   slug: z.string(),
@@ -128,7 +129,7 @@ export function createAdvisorTools(requestId: string, presentation: "cards" | "c
     for (const [key, value] of Object.entries(mapping)) if (value !== undefined && value !== "") params.set(key, String(value));
     const payload = await fetchJson(`/listings?${params}`, context?.abortSignal) as { data?: Array<Record<string, unknown>> };
     const listings = (payload.data || []).slice(0, input.limit).map(sanitizeListing);
-    console.info(JSON.stringify({ event: "ai_tool", request_id: requestId, tool: "search_listings", latency_ms: Math.round(performance.now() - startedAt), result_count: listings.length }));
+    logEvent("info", "ai_tool", { request_id: requestId, tool: "search_listings", latency_ms: Math.round(performance.now() - startedAt), result_count: listings.length });
     return { listings, synthetic: (payload.data || []).some((row) => !row.source_url), presentation };
   });
 
@@ -141,7 +142,7 @@ export function createAdvisorTools(requestId: string, presentation: "cards" | "c
       description: String(payload.data.description || ""),
       amenities: Array.isArray(payload.data.amenities) ? payload.data.amenities.map(String).slice(0, 20) : [],
     };
-    console.info(JSON.stringify({ event: "ai_tool", request_id: requestId, tool: "get_listing_detail", latency_ms: Math.round(performance.now() - startedAt) }));
+    logEvent("info", "ai_tool", { request_id: requestId, tool: "get_listing_detail", latency_ms: Math.round(performance.now() - startedAt) });
     return { listing, synthetic: !payload.data.source_url, presentation };
   });
 

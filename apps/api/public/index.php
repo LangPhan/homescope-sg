@@ -8,14 +8,17 @@ use HomeScope\Http;
 use HomeScope\Middleware\AuthMiddleware;
 use HomeScope\Middleware\RateLimitMiddleware;
 use HomeScope\Middleware\RequestIdMiddleware;
+use HomeScope\Middleware\RequestLogMiddleware;
+use Psr\Log\LoggerInterface;
 use Slim\Factory\AppFactory;
 use Slim\Routing\RouteCollectorProxy;
 
 require dirname(__DIR__).'/vendor/autoload.php';
 if(file_exists(dirname(__DIR__,2).'/.env'))Dotenv\Dotenv::createImmutable(dirname(__DIR__,2))->safeLoad();
 $container=require dirname(__DIR__).'/config/container.php';AppFactory::setContainer($container);$app=AppFactory::create();$app->setBasePath('/api');
-$app->addBodyParsingMiddleware();$app->add(new RequestIdMiddleware());$app->add(new RateLimitMiddleware($container->get(HomeScope\Cache::class)));$app->addRoutingMiddleware();$errors=$app->addErrorMiddleware((getenv('APP_ENV')?:'local')!=='production',true,true);
-$errors->setDefaultErrorHandler(function($request,Throwable $e,bool $display) { $response=new Slim\Psr7\Response(); error_log(json_encode(['level'=>'error','request_id'=>$_SERVER['REQUEST_ID']??null,'message'=>$e->getMessage()])); return Http::error($response,'INTERNAL_ERROR',$display?$e->getMessage():'The server could not complete the request.',500); });
+$logger=$container->get(LoggerInterface::class);
+$app->addBodyParsingMiddleware();$app->add(new RateLimitMiddleware($container->get(HomeScope\Cache::class)));$app->add(new RequestLogMiddleware($logger));$app->addRoutingMiddleware();$app->add(new RequestIdMiddleware());$errors=$app->addErrorMiddleware((getenv('APP_ENV')?:'local')!=='production',true,true);
+$errors->setDefaultErrorHandler(function($request,Throwable $e,bool $display) use($logger) { $response=new Slim\Psr7\Response(); $logger->error('unhandled_exception',['event'=>'unhandled_exception','request_id'=>$_SERVER['REQUEST_ID']??null,'error_type'=>$e::class]); return Http::error($response,'INTERNAL_ERROR',$display?$e->getMessage():'The server could not complete the request.',500); });
 $app->get('/docs',function($r,$res){$res->getBody()->write(file_get_contents(dirname(__DIR__).'/openapi.yaml'));return $res->withHeader('Content-Type','application/yaml');});
 $app->group('/v1',function(RouteCollectorProxy $api) use($container){
     $api->get('/health',fn($r,$res)=>Http::json($res,['status'=>'ok','service'=>'homescope-api','time'=>gmdate(DATE_ATOM)]));

@@ -29,6 +29,7 @@ import {
   findFastCachedAnswer,
   type AiCacheContext,
 } from "@/features/ai-advisor/server/response-cache";
+import { logEvent, requestIdFrom } from "@/shared/observability/logger";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -111,7 +112,7 @@ function blockedResponse(classification: Classification, threadId: string, runId
 
 export async function POST(request: Request) {
   const startedAt = performance.now();
-  const requestId = request.headers.get("x-request-id") || crypto.randomUUID();
+  const requestId = requestIdFrom(request);
   const denied = await authorize(request, requestId);
   if (denied) return denied;
 
@@ -141,12 +142,11 @@ export async function POST(request: Request) {
       pageContext,
     });
     if (fastCached) {
-      console.info(JSON.stringify({
-        event: "ai_cache_fast_hit",
+      logEvent("info", "ai_cache_fast_hit", {
         request_id: requestId,
         similarity: Number(fastCached.similarity.toFixed(3)),
         latency_ms: Math.round(performance.now() - startedAt),
-      }));
+      });
       return toServerSentEventsResponse(cachedAnswerStream(fastCached.answer.chunks, params.threadId, params.runId), {
         headers: { "X-AI-Cache": "HIT" },
       });
@@ -166,8 +166,7 @@ export async function POST(request: Request) {
       const classifierError = error && typeof error === "object"
         ? error as { name?: string; code?: string; status?: number; cause?: { name?: string; code?: string; status?: number } }
         : {};
-      console.warn(JSON.stringify({
-        event: "ai_classifier_failed",
+      logEvent("warn", "ai_classifier_failed", {
         request_id: requestId,
         model: NINE_ROUTER_MODEL,
         error_name: classifierError.name || "UnknownError",
@@ -176,18 +175,17 @@ export async function POST(request: Request) {
         cause_name: classifierError.cause?.name,
         cause_code: classifierError.cause?.code,
         cause_status: classifierError.cause?.status,
-      }));
+      });
       classification = { category: "unsafe", normalized_query: "Blocked unsafe request" };
     }
   }
 
-  console.info(JSON.stringify({
-    event: "ai_request",
+  logEvent("info", "ai_request", {
     request_id: requestId,
     classification: classification.category,
     model: NINE_ROUTER_MODEL,
     latency_ms: Math.round(performance.now() - startedAt),
-  }));
+  });
 
   if (!isAllowedCategory(classification.category)) return blockedResponse(classification, params.threadId, params.runId);
 
@@ -198,30 +196,28 @@ export async function POST(request: Request) {
   };
   const cached = await findCachedAnswer(classification.normalized_query, cacheContext);
   if (cached) {
-    console.info(JSON.stringify({
-      event: "ai_cache_hit",
+    logEvent("info", "ai_cache_hit", {
       request_id: requestId,
       classification: classification.category,
       similarity: Number(cached.similarity.toFixed(3)),
       latency_ms: Math.round(performance.now() - startedAt),
-    }));
+    });
     return toServerSentEventsResponse(cachedAnswerStream(cached.answer.chunks, params.threadId, params.runId), {
       headers: { "X-AI-Cache": "HIT" },
     });
   }
-  console.info(JSON.stringify({
-    event: "ai_cache_miss",
+  logEvent("info", "ai_cache_miss", {
     request_id: requestId,
     classification: classification.category,
-  }));
+  });
 
   const auditMiddleware: ChatMiddleware = {
     name: "homescope-ai-audit",
     onUsage(_context, usage) {
-      console.info(JSON.stringify({ event: "ai_usage", request_id: requestId, model: NINE_ROUTER_MODEL, usage }));
+      logEvent("info", "ai_usage", { request_id: requestId, model: NINE_ROUTER_MODEL, usage });
     },
     onFinish() {
-      console.info(JSON.stringify({ event: "ai_finish", request_id: requestId, model: NINE_ROUTER_MODEL, latency_ms: Math.round(performance.now() - startedAt) }));
+      logEvent("info", "ai_finish", { request_id: requestId, model: NINE_ROUTER_MODEL, latency_ms: Math.round(performance.now() - startedAt) });
     },
   };
 
