@@ -102,7 +102,7 @@ Set `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in `.env` and restrict the key to your dep
 
 ## Deployment
 
-The intended near-zero-cost deployment is one OCI Always Free VM with Docker Compose and a TLS reverse proxy. GitHub Actions builds versioned images in GHCR, connects with `OCI_HOST`, `OCI_USER`, `OCI_SSH_KEY`, deploys `/opt/homescope`, then smoke-tests `APP_DOMAIN/api/v1/health`. Secrets never enter Git or image layers.
+Production uses a hybrid layout: the Next.js frontend and same-origin BFF run on Vercel, while PHP, MySQL, Redis, 9Router, the AI gateway, and observability stay on the Tailscale host. The protected origin is exposed through Tailscale Funnel and accepts only a server-side shared header. See [`docs/hybrid-deployment.md`](docs/hybrid-deployment.md) for setup, deployment secrets, smoke tests, and rollback. Secrets never enter Git or image layers.
 
 ## Monitoring and logging
 
