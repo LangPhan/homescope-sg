@@ -30,6 +30,7 @@ import {
   type AiCacheContext,
 } from "@/features/ai-advisor/server/response-cache";
 import { logEvent, requestIdFrom } from "@/shared/observability/logger";
+import { recordAiCache, recordAiProvider, recordAiRequest, recordAiUsage } from "@/shared/observability/metrics";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -142,6 +143,7 @@ export async function POST(request: Request) {
       pageContext,
     });
     if (fastCached) {
+      recordAiCache("fast", "hit");
       logEvent("info", "ai_cache_fast_hit", {
         request_id: requestId,
         similarity: Number(fastCached.similarity.toFixed(3)),
@@ -151,6 +153,7 @@ export async function POST(request: Request) {
         headers: { "X-AI-Cache": "HIT" },
       });
     }
+    recordAiCache("fast", "miss");
   }
 
   let classification: Classification;
@@ -158,8 +161,11 @@ export async function POST(request: Request) {
     classification = { category: "prompt_injection", normalized_query: "Blocked prompt-injection request" };
   } else {
     try {
+      const classifierStartedAt = performance.now();
       classification = normalizeBusinessClassification(await classifyMessage(latestMessage, params.threadId));
+      recordAiProvider("classifier", "success", (performance.now() - classifierStartedAt) / 1_000);
     } catch (error) {
+      recordAiProvider("classifier", "error", (performance.now() - startedAt) / 1_000);
       if (isProviderUnavailable(error)) {
         return jsonError(503, "AI_PROVIDER_UNAVAILABLE", "The AI advisor is temporarily unavailable. Your chat history is safe; please retry.", requestId);
       }
@@ -187,7 +193,8 @@ export async function POST(request: Request) {
     latency_ms: Math.round(performance.now() - startedAt),
   });
 
-  if (!isAllowedCategory(classification.category)) return blockedResponse(classification, params.threadId, params.runId);
+  if (!isAllowedCategory(classification.category)) { recordAiRequest(classification.category, "blocked"); return blockedResponse(classification, params.threadId, params.runId); }
+  recordAiRequest(classification.category, "allowed");
 
   const cacheContext: AiCacheContext = {
     category: classification.category,
@@ -196,6 +203,7 @@ export async function POST(request: Request) {
   };
   const cached = await findCachedAnswer(classification.normalized_query, cacheContext);
   if (cached) {
+    recordAiCache("semantic", "hit");
     logEvent("info", "ai_cache_hit", {
       request_id: requestId,
       classification: classification.category,
@@ -206,6 +214,7 @@ export async function POST(request: Request) {
       headers: { "X-AI-Cache": "HIT" },
     });
   }
+  recordAiCache("semantic", "miss");
   logEvent("info", "ai_cache_miss", {
     request_id: requestId,
     classification: classification.category,
@@ -214,9 +223,11 @@ export async function POST(request: Request) {
   const auditMiddleware: ChatMiddleware = {
     name: "homescope-ai-audit",
     onUsage(_context, usage) {
+      recordAiUsage(NINE_ROUTER_MODEL, usage);
       logEvent("info", "ai_usage", { request_id: requestId, model: NINE_ROUTER_MODEL, usage });
     },
     onFinish() {
+      recordAiProvider("advisor", "success", (performance.now() - startedAt) / 1_000);
       logEvent("info", "ai_finish", { request_id: requestId, model: NINE_ROUTER_MODEL, latency_ms: Math.round(performance.now() - startedAt) });
     },
   };

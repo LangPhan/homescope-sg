@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace HomeScope\Middleware;
 
+use HomeScope\Metrics;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -12,29 +13,34 @@ use Slim\Routing\RouteContext;
 
 final class RequestLogMiddleware implements MiddlewareInterface
 {
-    public function __construct(private LoggerInterface $logger) {}
+    public function __construct(private LoggerInterface $logger, private ?Metrics $metrics = null) {}
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $startedAt = hrtime(true);
         try {
             $response = $handler->handle($request);
+            $route = self::routeLabel($request);
+            $durationSeconds = (hrtime(true) - $startedAt) / 1_000_000_000;
+            $this->metrics?->observeRequest($request->getMethod(), $route, $response->getStatusCode(), $durationSeconds);
             $this->logger->info('http_request', [
                 'event' => 'http_request',
                 'request_id' => (string)$request->getAttribute('request_id', ''),
                 'method' => $request->getMethod(),
-                'route' => self::routeLabel($request),
+                'route' => $route,
                 'status' => $response->getStatusCode(),
                 'status_class' => intdiv($response->getStatusCode(), 100).'xx',
                 'duration_ms' => round((hrtime(true) - $startedAt) / 1_000_000, 2),
             ]);
             return $response;
         } catch (\Throwable $error) {
+            $route = self::routeLabel($request);
+            $this->metrics?->observeRequest($request->getMethod(), $route, 500, (hrtime(true) - $startedAt) / 1_000_000_000);
             $this->logger->error('http_request_failed', [
                 'event' => 'http_request_failed',
                 'request_id' => (string)$request->getAttribute('request_id', ''),
                 'method' => $request->getMethod(),
-                'route' => self::routeLabel($request),
+                'route' => $route,
                 'error_type' => $error::class,
                 'duration_ms' => round((hrtime(true) - $startedAt) / 1_000_000, 2),
             ]);

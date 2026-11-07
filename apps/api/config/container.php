@@ -8,6 +8,8 @@ use HomeScope\Repository\ListingRepository;
 use HomeScope\Service\AuthService;
 use HomeScope\Service\AiQuotaService;
 use Psr\Log\LoggerInterface;
+use Prometheus\CollectorRegistry;
+use Prometheus\Storage\Predis as PrometheusPredis;
 
 $builder=new ContainerBuilder();
 $builder->addDefinitions([
@@ -17,5 +19,12 @@ $builder->addDefinitions([
     CounterStore::class=>fn($c)=>$c->get(Cache::class),
     AiQuotaService::class=>fn($c)=>new AiQuotaService($c->get(CounterStore::class)),
     LoggerInterface::class=>fn()=>(new HomeScope\LoggerFactory())(),
+    CollectorRegistry::class=>fn()=>new CollectorRegistry(new PrometheusPredis([
+        'host'=>getenv('REDIS_HOST')?:'redis',
+        'port'=>(int)(getenv('REDIS_PORT')?:6379),
+        'timeout'=>0.4,
+    ], ['prefix'=>'homescope:metrics:'])),
+    HomeScope\Metrics::class=>fn($c)=>new HomeScope\Metrics($c->get(CollectorRegistry::class)),
+    HomeScope\HealthService::class=>fn($c)=>new HomeScope\HealthService($c->get(\PDO::class),$c->get(Cache::class),$c->get(HomeScope\Metrics::class)),
 ]);
 return $builder->build();
