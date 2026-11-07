@@ -1,12 +1,21 @@
 "use client";
 
+import { areaY, defineChart, lineY } from "@tanstack/charts";
+import { Chart } from "@tanstack/charts/react";
+import { scaleLinear } from "@tanstack/charts/scales/linear";
+import { scalePoint } from "@tanstack/charts/scales/point";
+import { tooltip } from "@tanstack/charts/tooltip";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
-import { useId, useState } from "react";
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useMemo, useState } from "react";
 import { InsightSection } from "./insight-section";
 import { money, type ListingTransaction } from "@/shared/api";
 
 type Metric = "price" | "psf";
+type TrendDatum = {
+  month: string;
+  value: number;
+  baseline: number;
+};
 
 function shortMoney(value: number) {
   return value >= 1_000_000 ? `$${(value / 1_000_000).toFixed(2)}m` : `$${Math.round(value / 1000)}k`;
@@ -14,12 +23,77 @@ function shortMoney(value: number) {
 
 export function PriceTrends({ transactions }: { transactions: ListingTransaction[] }) {
   const [metric, setMetric] = useState<Metric>("price");
-  const gradientId = useId().replaceAll(":", "");
   const first = transactions[0];
   const latest = transactions.at(-1)!;
   const change = first ? ((latest[metric] - first[metric]) / first[metric]) * 100 : 0;
   const rising = change >= 0;
-  const formatter = (value: number) => metric === "price" ? money(value) : `${money(value)} psf`;
+  const chartData = useMemo<TrendDatum[]>(() => {
+    const values = transactions.map((transaction) => Number(transaction[metric]));
+    const baseline = Math.floor(Math.min(...values) * 0.94);
+
+    return transactions.map((transaction, index) => ({
+      month: transaction.month,
+      value: values[index],
+      baseline,
+    }));
+  }, [metric, transactions]);
+  const definition = useMemo(() => defineChart({
+    marks: [
+      areaY(chartData, {
+        id: "price-trend-area",
+        x: "month",
+        y1: "baseline",
+        y2: "value",
+        fill: "url(#price-trend-fill)",
+      }),
+      lineY(chartData, {
+        id: "price-trend-line",
+        x: "month",
+        y: "value",
+        points: true,
+        stroke: "#0d6b64",
+        strokeWidth: 3,
+      }),
+    ],
+    scales: {
+      x: {
+        scale: () => scalePoint<string>().padding(0.15),
+        axis: {
+          ticks: {
+            format: (value) => String(value).slice(2).replace("-", "′"),
+          },
+        },
+      },
+      y: {
+        scale: scaleLinear,
+        nice: true,
+        grid: true,
+        axis: {
+          ticks: {
+            format: (value) => metric === "price" ? shortMoney(Number(value)) : `$${Math.round(Number(value))}`,
+          },
+        },
+      },
+    },
+    gradients: [{
+      id: "price-trend-fill",
+      x1: 0,
+      y1: 1,
+      x2: 0,
+      y2: 0,
+      stops: [
+        { offset: 0, color: "#0d6b64", opacity: 0.03 },
+        { offset: 1, color: "#0d6b64", opacity: 0.26 },
+      ],
+    }],
+    clip: true,
+    focus: "nearest-x",
+    svgAnimation: true,
+    tooltip: {
+      use: tooltip,
+      format: (point) => `${point.datum.month}: ${metric === "price" ? money(point.datum.value) : `${money(point.datum.value)} psf`}`,
+    },
+  }), [chartData, metric]);
 
   return (
     <InsightSection
@@ -35,17 +109,13 @@ export function PriceTrends({ transactions }: { transactions: ListingTransaction
           <p className="mt-2 text-xs leading-5 text-muted-copy">From {first?.month} to {latest.month}</p>
           <div className="mt-4 flex rounded-lg bg-white p-1 sm:hidden">{(["price", "psf"] as Metric[]).map((value) => <button type="button" key={value} onClick={() => setMetric(value)} className={`flex-1 rounded-md px-2 py-1.5 text-xs font-bold uppercase ${metric === value ? "bg-teal text-white" : "text-muted-copy"}`}>{value}</button>)}</div>
         </div>
-        <div className="h-[270px] min-w-0">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={transactions} margin={{ top: 12, right: 8, left: 4, bottom: 0 }}>
-              <defs><linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1"><stop offset="4%" stopColor="#0d6b64" stopOpacity={.28}/><stop offset="96%" stopColor="#0d6b64" stopOpacity={.02}/></linearGradient></defs>
-              <CartesianGrid vertical={false} stroke="#e7ebe7" strokeDasharray="3 4"/>
-              <XAxis dataKey="month" tickLine={false} axisLine={false} fontSize={11} minTickGap={32} tickFormatter={(value) => value.slice(2).replace("-", "′")}/>
-              <YAxis tickLine={false} axisLine={false} width={58} fontSize={11} domain={["auto", "auto"]} tickFormatter={(value) => metric === "price" ? shortMoney(value) : `$${value}`}/>
-              <Tooltip formatter={(value) => formatter(Number(value))} labelFormatter={(label) => `Registered ${label}`} contentStyle={{ border: "1px solid #dfe4df", borderRadius: 12, boxShadow: "0 10px 30px rgba(16,42,46,.1)" }}/>
-              <Area type="monotone" dataKey={metric} stroke="#0d6b64" strokeWidth={3} fill={`url(#${gradientId})`} activeDot={{ r: 5, fill: "#ec6a4d", stroke: "#fff", strokeWidth: 2 }}/>
-            </AreaChart>
-          </ResponsiveContainer>
+        <div className="h-[270px] min-w-0 text-muted-copy">
+          <Chart
+            definition={definition}
+            height={270}
+            initialWidth={600}
+            ariaLabel={`Comparable ${metric === "price" ? "sale price" : "price per square foot"} by registration month`}
+          />
         </div>
       </div>
     </InsightSection>

@@ -7,12 +7,20 @@ try {
   if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
 }
 
-const nextConfig: NextConfig = {
-  output: "standalone",
-  allowedDevOrigins: (process.env.NEXT_DEV_ALLOWED_HOSTS || "")
+const allowedDevOrigins = new Set([
+  "localhost",
+  "127.0.0.1",
+  "laxng-inspiron-5567.forest-alewife.ts.net",
+  ...(process.env.NEXT_DEV_ALLOWED_HOSTS || "")
     .split(",")
     .map((host) => host.trim())
     .filter(Boolean),
+]);
+
+const nextConfig: NextConfig = {
+  agentRules: false,
+  output: "standalone",
+  allowedDevOrigins: [...allowedDevOrigins],
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },

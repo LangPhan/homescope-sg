@@ -6,3 +6,4 @@ export { Input } from "./input";
 export { Pill } from "./pill";
 export { Skeleton } from "./skeleton";
 export { Footer } from "./footer";
+export { DataTable, createDataTableColumnHelper, type DataTableColumn } from "./data-table";
