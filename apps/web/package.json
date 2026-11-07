@@ -15,6 +15,7 @@
     "@googlemaps/js-api-loader": "^2.0.2",
     "@googlemaps/markerclusterer": "^2.6.2",
     "@hookform/resolvers": "^5.2.2",
+    "@redis/client": "^6.3.1",
     "@tanstack/ai": "^1.1.0",
     "@tanstack/ai-openai": "^1.1.0",
     "@tanstack/ai-react": "^1.0.2",

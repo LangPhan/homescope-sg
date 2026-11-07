@@ -19,6 +19,7 @@ services:
       NINE_ROUTER_BASE_URL: ${NINE_ROUTER_BASE_URL:-http://host.docker.internal:20128/v1}
       NINE_ROUTER_MODEL: ${NINE_ROUTER_MODEL:-cx/gpt-6-luna}
       NINE_ROUTER_API_KEY: ${NINE_ROUTER_API_KEY:-}
+      REDIS_URL: redis://redis:6379
     expose: ["3000"]
     extra_hosts: ["host.docker.internal:host-gateway"]
     depends_on: [api]
@@ -56,6 +57,7 @@ services:
   redis:
     image: redis:7.4-alpine
     command: ["redis-server", "--appendonly", "yes", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru"]
+    ports: ["127.0.0.1:6379:6379"]
     volumes: ["redis_data:/data"]
     healthcheck: { test: ["CMD", "redis-cli", "ping"], interval: 5s, timeout: 3s, retries: 10 }
     restart: unless-stopped

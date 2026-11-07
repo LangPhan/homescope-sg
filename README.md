@@ -26,6 +26,7 @@ flowchart LR
   Browser -->|/api/ai/chat SSE| Nginx
   Nginx -->|buffering off| Next
   Next -->|OpenAI-compatible| Router[9Router / production gateway]
+  Next -->|similar-answer cache| Redis
   Next -->|JWT + quota check| PHP
   Nginx --> PHP[PHP 8.3 + Slim 4]
   PHP --> Redis[(Redis cache + rate limits)]
@@ -58,7 +59,7 @@ NINE_ROUTER_API_KEY=<dedicated-homescope-key>
 
 Do not use a `NEXT_PUBLIC_*` name for the key. Docker maps `host.docker.internal` to the host gateway on Linux. Production can point the same variables at a secured OpenAI-compatible gateway; there is no automatic provider fallback.
 
-Before any model call, PHP validates the JWT and applies Redis quotas of 10 messages/minute and 100/day per user. A deterministic injection guard and a separate strict-schema classifier then allow only property search, listing comparison, market explanation and HomeScope product help. The read-only `search_listings` and `get_listing_detail` tools query the demo catalogue. `lookup_hdb_resales` retrieves up to ten recent registered sales, optionally filtered by HDB town. See [the AI architecture and security notes](docs/ai-advisor.md).
+Before any model call, PHP validates the JWT and applies Redis quotas of 10 messages/minute and 100/day per user. After the deterministic injection guard, a high-confidence global cache can immediately replay a previously approved standalone question for any authenticated user, without waiting for the model classifier. On a fast-cache miss, the strict-schema classifier allows only property search, listing comparison, market explanation and HomeScope product help; its normalized query gets a second, broader similar-answer lookup. User identity and pathname are never part of either cache scope. The cache is scoped by the shared catalogue data version; every successful import or sync increments that version, so an answer generated from older listing or transaction data cannot be served after an update. The read-only `search_listings` and `get_listing_detail` tools query the demo catalogue. `lookup_hdb_resales` retrieves up to ten recent registered sales, optionally filtered by HDB town. See [the AI architecture and security notes](docs/ai-advisor.md).
 
 ## API examples
 
@@ -76,7 +77,7 @@ Every error follows `{ code, message, details, request_id }`; the same request I
 - `SPATIAL INDEX idx_location(location)` prunes viewport candidates before attribute filters.
 - `idx_search(status, property_type, district, price, bedrooms, listed_at, id)` covers the common discovery path; focused price sorting has its own index.
 - Cursor order follows the active sort field with `id DESC` as a stable tie-breaker. Unlike offsets, earlier inserts do not shift later pages.
-- Search caches expire after 30 seconds and detail caches after 60 seconds. The sync job invalidates listing keys after a successful transaction.
+- Search caches expire after 30 seconds and detail caches after 60 seconds. Similar AI answers expire after 30 minutes. The sync job invalidates listing keys and advances the AI data-version namespace after a successful transaction.
 - Run the representative query with `docker compose exec mysql mysql -uhomescope -phomescope homescope < apps/api/database/explain.sql` and keep the `EXPLAIN ANALYZE` output with performance review notes.
 
 ## Data sync

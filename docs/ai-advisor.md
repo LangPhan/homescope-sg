@@ -18,19 +18,44 @@ sequenceDiagram
   P->>R: Per-user minute/day counters
   P-->>W: 204, 401 or 429
   W->>W: Size limits + deterministic injection guard
-  W->>A: Strict-schema business classifier
-  alt Allowed property category
-    W->>A: Advisor stream with read-only tools
-    A->>W: search_listings / get_listing_detail
-    W->>L: Validated internal catalogue request
-    L-->>W: Sanitized listing snapshot
-    W-->>B: TanStack AI Server-Sent Events
-  else Blocked category or malformed classifier
-    W-->>B: Localized refusal SSE (advisor/tools not run)
+  W->>R: High-confidence global lookup + data version
+  alt Fast global cache hit
+    R-->>W: Cached TanStack AI stream
+    W-->>B: Replayed SSE with fresh run/message IDs
+  else Fast cache miss
+    W->>A: Strict-schema business classifier
+    alt Allowed property category
+      W->>R: Normalized similar-answer lookup
+      alt Versioned cache hit
+        R-->>W: Cached TanStack AI stream
+        W-->>B: Replayed SSE with fresh run/message IDs
+      else Cache miss
+        W->>A: Advisor stream with read-only tools
+        A->>W: search_listings / get_listing_detail
+        W->>L: Validated internal catalogue request
+        L-->>W: Sanitized listing snapshot
+        W->>R: Cache completed stream (30 minute TTL)
+        W-->>B: TanStack AI Server-Sent Events
+      end
+    else Blocked category or malformed classifier
+      W-->>B: Localized refusal SSE (advisor/tools not run)
+    end
   end
 ```
 
 The client uses TanStack AI `useChat`, `fetchServerSentEvents` and `sessionStoragePersistence`. The thread key includes the authenticated email, survives page navigation and reloads in the same tab, and is deleted on logout. An active request is aborted on logout. A `401` refreshes the normal HttpOnly-cookie session and retries the AI request once.
+
+## Similar-answer cache and revalidation
+
+- Authentication, quota checks, request validation and the deterministic prompt-injection guard always run. Then a global fast cache uses the original question with a strict `0.92` similarity threshold, letting another authenticated user receive an approved cached sample answer without waiting for the classifier.
+- On a fast-cache miss, the strict classifier validates the category and produces normalized English. A second cache lookup uses a broader `0.76` threshold over that trusted normalized query.
+- Only standalone questions are cached. Follow-ups such as “compare those” bypass the shared cache because their meaning depends on prior conversation.
+- Normalization canonicalizes common property synonyms, written numbers and SGD amounts. A hit requires the same critical constraints—budget, bedroom count, property type, tenure, district and MRT intent—plus a Dice similarity score of at least `0.76`.
+- Model and shared data version form the global scope; category is added to the post-classifier scope. User identity, thread ID, pathname and page filters are deliberately excluded, so answers are reused system-wide. This is safe because only standalone questions enter the cache and responses contain public catalogue/tool data, never user profile data, JWTs or conversation history.
+- The complete TanStack AI event stream is cached, including validated listing tool results. On replay, thread, run, message and tool-call IDs are regenerated to preserve `useChat` state correctness.
+- Redis entries have a 30-minute TTL and a bounded 60-entry index per scope. Redis failures are fail-open: HomeScope calls the advisor normally instead of failing the request.
+- `sync-listings.php` and `import-propnex.php` call `Cache::flushListings()` only after their database transaction succeeds. That method now increments `homescope:data-version`. The version is part of every AI cache scope, so previous answers become unreachable immediately after catalogue or modelled-transaction updates and expire naturally without a blocking key scan.
+- `X-AI-Cache: HIT|MISS` and structured `ai_cache_fast_hit` / `ai_cache_hit` logs make behavior observable without recording the user's message.
 
 ## Local 9Router setup
 
@@ -77,6 +102,7 @@ The AI route uses the existing API error envelope: `{ code, message, details, re
 
 - PHPUnit covers Bearer authentication, per-user quotas, minute/day buckets and Redis TTL values through the counter-store contract.
 - Vitest covers injection corpora, strict classifier output, allowed categories, provider error mapping, tool argument/slug restrictions, locked/authenticated UI and session cleanup.
+- Vitest also covers similar-query hits, critical-constraint misses, data-version revalidation and safe stream-ID replay.
 - Playwright intercepts the OpenAI-compatible SSE response, so CI never needs a 9Router key. It covers direct guest denial, authenticated streaming and history surviving `/search` ↔ `/engineering` navigation.
 
 The live local smoke test is intentionally separate because it requires the developer-owned dedicated 9Router key.

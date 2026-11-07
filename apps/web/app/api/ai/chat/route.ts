@@ -22,6 +22,13 @@ import {
   nineRouterAdapter,
 } from "@/features/ai-advisor/server/provider";
 import { createAdvisorTools } from "@/features/ai-advisor/server/tools";
+import {
+  cachedAnswerStream,
+  captureAnswerStream,
+  findCachedAnswer,
+  findFastCachedAnswer,
+  type AiCacheContext,
+} from "@/features/ai-advisor/server/response-cache";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -127,6 +134,25 @@ export async function POST(request: Request) {
     return jsonError(422, "INVALID_AI_REQUEST", message, requestId);
   }
 
+  if (!looksLikePromptInjection(latestMessage)) {
+    const fastCached = await findFastCachedAnswer(latestMessage, {
+      category: "global",
+      model: NINE_ROUTER_MODEL,
+      pageContext,
+    });
+    if (fastCached) {
+      console.info(JSON.stringify({
+        event: "ai_cache_fast_hit",
+        request_id: requestId,
+        similarity: Number(fastCached.similarity.toFixed(3)),
+        latency_ms: Math.round(performance.now() - startedAt),
+      }));
+      return toServerSentEventsResponse(cachedAnswerStream(fastCached.answer.chunks, params.threadId, params.runId), {
+        headers: { "X-AI-Cache": "HIT" },
+      });
+    }
+  }
+
   let classification: Classification;
   if (looksLikePromptInjection(latestMessage)) {
     classification = { category: "prompt_injection", normalized_query: "Blocked prompt-injection request" };
@@ -164,6 +190,30 @@ export async function POST(request: Request) {
   }));
 
   if (!isAllowedCategory(classification.category)) return blockedResponse(classification, params.threadId, params.runId);
+
+  const cacheContext: AiCacheContext = {
+    category: classification.category,
+    model: NINE_ROUTER_MODEL,
+    pageContext,
+  };
+  const cached = await findCachedAnswer(classification.normalized_query, cacheContext);
+  if (cached) {
+    console.info(JSON.stringify({
+      event: "ai_cache_hit",
+      request_id: requestId,
+      classification: classification.category,
+      similarity: Number(cached.similarity.toFixed(3)),
+      latency_ms: Math.round(performance.now() - startedAt),
+    }));
+    return toServerSentEventsResponse(cachedAnswerStream(cached.answer.chunks, params.threadId, params.runId), {
+      headers: { "X-AI-Cache": "HIT" },
+    });
+  }
+  console.info(JSON.stringify({
+    event: "ai_cache_miss",
+    request_id: requestId,
+    classification: classification.category,
+  }));
 
   const auditMiddleware: ChatMiddleware = {
     name: "homescope-ai-audit",
@@ -205,5 +255,8 @@ export async function POST(request: Request) {
     modelOptions: { temperature: 0.2 },
   });
 
-  return toServerSentEventsResponse(stream, { abortController });
+  return toServerSentEventsResponse(captureAnswerStream(stream, classification.normalized_query, cacheContext, latestMessage), {
+    abortController,
+    headers: { "X-AI-Cache": "MISS" },
+  });
 }

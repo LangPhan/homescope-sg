@@ -22,5 +22,11 @@ final class Cache implements CounterStore
     {
         try { $count = (int)$this->client()->incr($key); if ($count === 1) $this->client()->expire($key, $ttl); return $count; } catch (\Throwable) { return 1; }
     }
-    public function flushListings(): void { try { foreach ($this->client()->keys('listings:*') as $key) $this->client()->del($key); } catch (\Throwable) {} }
+    public function flushListings(): void
+    {
+        try {
+            foreach ($this->client()->keys('listings:*') as $key) $this->client()->del($key);
+            $this->client()->incr('homescope:data-version');
+        } catch (\Throwable) {}
+    }
 }
