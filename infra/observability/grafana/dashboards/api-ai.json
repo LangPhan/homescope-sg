@@ -1,0 +1,74 @@
+{
+  "annotations": {"list": []},
+  "editable": false,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "type": "timeseries", "title": "Request rate by service", "id": 1,
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 0},
+      "fieldConfig": {"defaults": {"unit": "reqps"}},
+      "targets": [{"expr": "sum by (service) (rate(homescope_http_requests_total[5m]))", "legendFormat": "{{service}}", "refId": "A"}]
+    },
+    {
+      "type": "timeseries", "title": "HTTP latency percentiles", "id": 2,
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 0},
+      "fieldConfig": {"defaults": {"unit": "s"}},
+      "targets": [
+        {"expr": "histogram_quantile(0.50, sum by (le, service) (rate(homescope_http_request_duration_seconds_bucket[5m])))", "legendFormat": "p50 {{service}}", "refId": "A"},
+        {"expr": "histogram_quantile(0.95, sum by (le, service) (rate(homescope_http_request_duration_seconds_bucket[5m])))", "legendFormat": "p95 {{service}}", "refId": "B"},
+        {"expr": "histogram_quantile(0.99, sum by (le, service) (rate(homescope_http_request_duration_seconds_bucket[5m])))", "legendFormat": "p99 {{service}}", "refId": "C"}
+      ]
+    },
+    {
+      "type": "timeseries", "title": "5xx ratio", "id": 3,
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0},
+      "fieldConfig": {"defaults": {"unit": "percentunit"}},
+      "targets": [{"expr": "sum(rate(homescope_http_requests_total{status_class=\"5xx\"}[5m])) / clamp_min(sum(rate(homescope_http_requests_total[5m])), 0.001)", "refId": "A"}]
+    },
+    {
+      "type": "stat", "title": "API cache hit ratio", "id": 4,
+      "gridPos": {"h": 5, "w": 6, "x": 0, "y": 8},
+      "fieldConfig": {"defaults": {"unit": "percentunit"}},
+      "targets": [{"expr": "sum(rate(homescope_cache_operations_total{outcome=\"hit\"}[15m])) / clamp_min(sum(rate(homescope_cache_operations_total[15m])), 0.001)", "refId": "A"}]
+    },
+    {
+      "type": "stat", "title": "AI cache hit ratio", "id": 5,
+      "gridPos": {"h": 5, "w": 6, "x": 6, "y": 8},
+      "fieldConfig": {"defaults": {"unit": "percentunit"}},
+      "targets": [{"expr": "sum(rate(homescope_ai_cache_operations_total{outcome=\"hit\"}[15m])) / clamp_min(sum(rate(homescope_ai_cache_operations_total[15m])), 0.001)", "refId": "A"}]
+    },
+    {
+      "type": "stat", "title": "AI provider errors (5m)", "id": 6,
+      "gridPos": {"h": 5, "w": 6, "x": 12, "y": 8},
+      "targets": [{"expr": "sum(increase(homescope_ai_provider_requests_total{outcome=\"error\"}[5m]))", "refId": "A"}]
+    },
+    {
+      "type": "stat", "title": "AI tokens (1h)", "id": 7,
+      "gridPos": {"h": 5, "w": 6, "x": 18, "y": 8},
+      "targets": [{"expr": "sum(increase(homescope_ai_tokens_total[1h]))", "refId": "A"}]
+    },
+    {
+      "type": "timeseries", "title": "AI provider latency", "id": 8,
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 13},
+      "fieldConfig": {"defaults": {"unit": "s"}},
+      "targets": [{"expr": "histogram_quantile(0.95, sum by (le, operation) (rate(homescope_ai_provider_duration_seconds_bucket[5m])))", "legendFormat": "p95 {{operation}}", "refId": "A"}]
+    },
+    {
+      "type": "timeseries", "title": "AI classifications and tool calls", "id": 9,
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 13},
+      "targets": [
+        {"expr": "sum by (category) (rate(homescope_ai_classifications_total[5m]))", "legendFormat": "classify {{category}}", "refId": "A"},
+        {"expr": "sum by (tool, outcome) (rate(homescope_ai_tool_calls_total[5m]))", "legendFormat": "{{tool}} {{outcome}}", "refId": "B"}
+      ]
+    }
+  ],
+  "refresh": "15s",
+  "schemaVersion": 41,
+  "tags": ["homescope", "api", "ai"],
+  "templating": {"list": []},
+  "time": {"from": "now-6h", "to": "now"},
+  "timezone": "browser",
+  "title": "API & AI",
+  "uid": "homescope-api-ai",
+  "version": 1
+}

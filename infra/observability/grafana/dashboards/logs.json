@@ -1,0 +1,42 @@
+{
+  "annotations": {"list": []},
+  "editable": false,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "type": "logs", "title": "Structured application logs", "id": 1,
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 16, "w": 24, "x": 0, "y": 0},
+      "options": {"dedupStrategy": "none", "enableLogDetails": true, "prettifyLogMessage": true, "showLabels": false, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true},
+      "targets": [{"expr": "{environment=~\"$environment\", service=~\"$service\", level=~\"$level\"} | json | request_id=~\"$request_id\"", "refId": "A"}]
+    },
+    {
+      "type": "timeseries", "title": "Log volume by level", "id": 2,
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+      "targets": [{"expr": "sum by (level) (count_over_time({environment=~\"$environment\", service=~\"$service\"}[5m]))", "legendFormat": "{{level}}", "refId": "A"}]
+    },
+    {
+      "type": "table", "title": "Events", "id": 3,
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+      "targets": [{"expr": "sum by (service, event) (count_over_time({environment=~\"$environment\", service=~\"$service\"}[15m]))", "refId": "A"}]
+    }
+  ],
+  "refresh": "15s",
+  "schemaVersion": 41,
+  "tags": ["homescope", "logs"],
+  "templating": {
+    "list": [
+      {"name": "environment", "label": "Environment", "type": "query", "datasource": {"type": "loki", "uid": "loki"}, "query": {"type": 1, "label": "environment", "refId": "LokiVariableQueryEditor-VariableQuery"}, "includeAll": true, "allValue": ".*", "current": {"text": "All", "value": "$__all"}},
+      {"name": "service", "label": "Service", "type": "query", "datasource": {"type": "loki", "uid": "loki"}, "query": {"type": 1, "label": "service", "stream": "{environment=~\"$environment\"}", "refId": "LokiVariableQueryEditor-VariableQuery"}, "includeAll": true, "allValue": ".*", "current": {"text": "All", "value": "$__all"}},
+      {"name": "level", "label": "Level", "type": "query", "datasource": {"type": "loki", "uid": "loki"}, "query": {"type": 1, "label": "level", "stream": "{environment=~\"$environment\", service=~\"$service\"}", "refId": "LokiVariableQueryEditor-VariableQuery"}, "includeAll": true, "allValue": ".*", "current": {"text": "All", "value": "$__all"}},
+      {"name": "request_id", "label": "Request ID regex", "type": "textbox", "query": ".*", "current": {"text": ".*", "value": ".*"}}
+    ]
+  },
+  "time": {"from": "now-1h", "to": "now"},
+  "timezone": "browser",
+  "title": "Logs",
+  "uid": "homescope-logs",
+  "version": 1
+}

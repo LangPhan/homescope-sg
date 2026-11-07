@@ -1,0 +1,166 @@
+logging {
+	level  = "info"
+	format = "json"
+}
+
+prometheus.remote_write "local" {
+	endpoint {
+		url = "http://prometheus:9090/api/v1/write"
+	}
+}
+
+prometheus.exporter.unix "host" {
+	rootfs_path = "/host/root"
+	procfs_path = "/host/proc"
+	sysfs_path  = "/host/sys"
+}
+
+prometheus.scrape "host" {
+	targets         = prometheus.exporter.unix.host.targets
+	forward_to      = [prometheus.remote_write.local.receiver]
+	job_name        = "integrations/node_exporter"
+	scrape_interval = "15s"
+}
+
+prometheus.exporter.cadvisor "containers" {
+	docker_host      = "unix:///var/run/docker.sock"
+	storage_duration = "5m"
+}
+
+prometheus.scrape "containers" {
+	targets         = prometheus.exporter.cadvisor.containers.targets
+	forward_to      = [prometheus.remote_write.local.receiver]
+	job_name        = "integrations/cadvisor"
+	scrape_interval = "15s"
+}
+
+prometheus.exporter.redis "cache" {
+	redis_addr = "redis://redis:6379"
+}
+
+prometheus.scrape "redis" {
+	targets         = prometheus.exporter.redis.cache.targets
+	forward_to      = [prometheus.remote_write.local.receiver]
+	job_name        = "integrations/redis"
+	scrape_interval = "15s"
+}
+
+prometheus.exporter.mysql "database" {
+	data_source_name = sys.env("MYSQL_EXPORTER_DSN")
+}
+
+prometheus.scrape "mysql" {
+	targets         = prometheus.exporter.mysql.database.targets
+	forward_to      = [prometheus.remote_write.local.receiver]
+	job_name        = "integrations/mysql"
+	scrape_interval = "15s"
+}
+
+prometheus.scrape "api" {
+	targets = [{
+		"__address__"      = "edge:8081",
+		"__metrics_path__" = "/api/v1/metrics",
+		"environment"      = sys.env("APP_ENV"),
+		"service"          = "api",
+	}]
+	forward_to      = [prometheus.remote_write.local.receiver]
+	job_name        = "homescope/api"
+	scrape_interval = "15s"
+}
+
+prometheus.scrape "web" {
+	targets = [{
+		"__address__"      = "edge:8081",
+		"__metrics_path__" = "/api/internal/metrics",
+		"environment"      = sys.env("APP_ENV"),
+		"service"          = "web",
+	}]
+	forward_to      = [prometheus.remote_write.local.receiver]
+	job_name        = "homescope/web"
+	scrape_interval = "15s"
+}
+
+prometheus.exporter.blackbox "services" {
+	config = "{ modules: { http_2xx: { prober: http, timeout: 5s } } }"
+
+	target {
+		name    = "api"
+		address = "http://edge/api/v1/health/ready"
+		module  = "http_2xx"
+		labels  = {environment = sys.env("APP_ENV"), service = "api"}
+	}
+
+	target {
+		name    = "web"
+		address = "http://edge/api/internal/health"
+		module  = "http_2xx"
+		labels  = {environment = sys.env("APP_ENV"), service = "web"}
+	}
+
+	target {
+		name    = "grafana"
+		address = "http://grafana:3000/api/health"
+		module  = "http_2xx"
+		labels  = {environment = sys.env("APP_ENV"), service = "grafana"}
+	}
+}
+
+prometheus.scrape "blackbox" {
+	targets         = prometheus.exporter.blackbox.services.targets
+	forward_to      = [prometheus.remote_write.local.receiver]
+	job_name        = "integrations/blackbox"
+	scrape_interval = "15s"
+}
+
+discovery.docker "containers" {
+	host = "unix:///var/run/docker.sock"
+}
+
+discovery.relabel "docker_logs" {
+	targets = []
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		target_label  = "service"
+	}
+}
+
+loki.source.docker "containers" {
+	host          = "unix:///var/run/docker.sock"
+	targets       = discovery.docker.containers.targets
+	labels        = {environment = sys.env("APP_ENV")}
+	relabel_rules = discovery.relabel.docker_logs.rules
+	forward_to    = [loki.process.structured.receiver]
+}
+
+loki.process "structured" {
+	stage.drop {
+		older_than          = "24h"
+		drop_counter_reason = "docker_log_too_old"
+	}
+
+	stage.json {
+		expressions = {
+			event      = "event",
+			level      = "level",
+			request_id = "request_id",
+			service    = "service",
+		}
+	}
+
+	stage.labels {
+		values = {
+			event   = "event",
+			level   = "level",
+			service = "service",
+		}
+	}
+
+	forward_to = [loki.write.local.receiver]
+}
+
+loki.write "local" {
+	endpoint {
+		url = "http://loki:3100/loki/api/v1/push"
+	}
+}
