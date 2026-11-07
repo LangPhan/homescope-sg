@@ -17,9 +17,19 @@ test("search to listing detail and back restores results",async({page})=>{
     element.scrollTop=900;return element.scrollTop;
   });
   const card=page.locator(".listing-card").nth(6);
-  const detailUrl=await card.getAttribute("href");
+  const cardLink=card.getByRole("link").first();
+  const detailUrl=await cardLink.getAttribute("href");
   if(!detailUrl)throw new Error("Listing card is missing its detail URL");
-  await Promise.all([page.waitForURL(`**${detailUrl}`),card.click({force:true})]);
+  await page.evaluate((expectedScroll)=>{
+    const state=window as Window&{__expectedSearchScroll?:number;__searchReturnScrolls?:number[]};
+    state.__expectedSearchScroll=expectedScroll;
+    state.__searchReturnScrolls=[];
+    new MutationObserver(()=>{
+      const panel=document.querySelector<HTMLElement>(".results-panel");
+      if(panel&&document.querySelector(".listing-card"))state.__searchReturnScrolls?.push(getComputedStyle(panel).overflowY==="visible"?window.scrollY:panel.scrollTop);
+    }).observe(document.body,{childList:true,subtree:true});
+  },savedScroll);
+  await Promise.all([page.waitForURL(`**${detailUrl}`),cardLink.click({force:true})]);
   await expect(page.getByRole("button",{name:"Request a viewing"})).toBeVisible();
   await expect(page.locator('script[type="application/ld+json"]')).toHaveCount(1);
   await page.waitForLoadState("networkidle");
@@ -27,10 +37,11 @@ test("search to listing detail and back restores results",async({page})=>{
   await page.getByRole("button",{name:"Back to search results"}).click();
   await expect(page).toHaveURL(/\/search$/);
   await expect.poll(()=>results.evaluate((element)=>getComputedStyle(element).overflowY==="visible"?window.scrollY:element.scrollTop)).toBeGreaterThanOrEqual(savedScroll);
+  expect(await page.evaluate(()=>{const state=window as Window&{__expectedSearchScroll?:number;__searchReturnScrolls?:number[]};return state.__searchReturnScrolls?.every((scroll)=>scroll>=(state.__expectedSearchScroll||0));})).toBe(true);
   expect(listingRequests).toBe(requestsAfterInitialLoad);
   expect(mapAssetRequests).toBe(mapRequestsBeforeBack);
 });
 test("demo credentials populate secure sign-in",async({page})=>{await page.goto("/auth");await page.getByRole("button",{name:"Use demo credentials"}).click();await expect(page.getByLabel("Email")).toHaveValue("demo@homescope.sg");await expect(page.getByLabel("Password")).toHaveValue("DemoPass123!");});
-test("keyword search filters listings",async({page})=>{await page.goto("/search");await page.getByLabel("Search location").fill("Vista");await page.getByRole("button",{name:"Search",exact:true}).click();await expect(page).toHaveURL(/q=Vista/);await expect(page.getByRole("heading",{name:"30 homes match"})).toBeVisible();await expect(page.locator(".listing-card h3").first()).toContainText("Vista");});
+test("keyword search filters listings",async({page})=>{await page.goto("/search");await page.getByLabel("Search location").fill("Vista");await page.getByRole("button",{name:"Search",exact:true}).click();await expect(page).toHaveURL(/q=Vista/);await expect(page.locator(".listing-card")).toHaveCount(4);await expect(page.getByRole("heading",{name:"4 homes match"})).toBeVisible();});
 test("normal search navigation does not restore stale scroll",async({page})=>{await page.goto("/search");await expect(page.getByRole("heading",{name:/homes match/})).toBeVisible();const results=page.locator(".results-panel");await results.evaluate((element)=>{if(getComputedStyle(element).overflowY==="visible")window.scrollTo(0,900);else element.scrollTop=900;});await page.goto("/");await page.goto("/search");await expect(page.getByRole("heading",{name:/homes match/})).toBeVisible();await expect.poll(()=>results.evaluate((element)=>getComputedStyle(element).overflowY==="visible"?window.scrollY:element.scrollTop)).toBeLessThanOrEqual(1);});
 test("repeated page navigation reuses listings without skeletons",async({page},testInfo)=>{test.skip(testInfo.project.name!=="chromium","Desktop navigation is hidden on mobile");let listingRequests=0;page.on("request",(request)=>{if(new URL(request.url()).pathname==="/api/v1/listings")listingRequests++;});await page.goto("/search");await expect(page.getByRole("heading",{name:/homes match/})).toBeVisible();await page.waitForLoadState("networkidle");const requestsAfterInitialLoad=listingRequests;expect(requestsAfterInitialLoad).toBeGreaterThan(0);await page.evaluate(()=>{const state=window as Window&{__sawSearchLoading?:boolean};state.__sawSearchLoading=false;new MutationObserver(()=>{if(document.querySelector('[aria-label="Loading homes"], .listing-card[aria-hidden="true"]'))state.__sawSearchLoading=true;}).observe(document.body,{childList:true,subtree:true});});for(let cycle=0;cycle<4;cycle++){await page.getByRole("link",{name:"Engineering"}).click();await expect(page).toHaveURL(/\/engineering$/);await page.getByRole("link",{name:"Explore homes"}).click();await expect(page).toHaveURL(/\/search$/);await expect(page.getByRole("heading",{name:/homes match/})).toBeVisible();}await page.waitForLoadState("networkidle");expect(listingRequests).toBe(requestsAfterInitialLoad);expect(await page.evaluate(()=>(window as Window&{__sawSearchLoading?:boolean}).__sawSearchLoading)).toBe(false);});

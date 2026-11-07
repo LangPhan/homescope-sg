@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { ListingCard, ListingCardSkeleton } from "@/entities/listing";
 import { getListings, type SearchFilters } from "@/shared/api";
@@ -103,27 +103,23 @@ export function ExploreResults({ filters }: { filters: SearchFilters }) {
     };
   }, [persistPosition, updateHeaderState]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (restoredKeyRef.current === storageKey) return;
     restoredKeyRef.current = storageKey;
     const shouldRestore = sessionStorage.getItem("homescope:returning-from-detail") === "true";
     if (!shouldRestore) {
-      requestAnimationFrame(() => {
-        if (panelRef.current) panelRef.current.scrollTop = 0;
-        window.scrollTo({ top: 0, behavior: "instant" });
-        updateHeaderState();
-      });
+      if (panelRef.current) panelRef.current.scrollTop = 0;
+      window.scrollTo({ top: 0, behavior: "instant" });
+      updateHeaderState();
       return;
     }
     const saved = sessionStorage.getItem(storageKey);
     if (!saved) return;
     try {
       const position = JSON.parse(saved) as { panel?: number; window?: number };
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        if (panelRef.current) panelRef.current.scrollTop = position.panel || 0;
-        window.scrollTo({ top: position.window || 0, behavior: "instant" });
-        updateHeaderState();
-      }));
+      if (panelRef.current) panelRef.current.scrollTop = position.panel || 0;
+      window.scrollTo({ top: position.window || 0, behavior: "instant" });
+      updateHeaderState();
     } catch { sessionStorage.removeItem(storageKey); }
   }, [storageKey, updateHeaderState]);
 
