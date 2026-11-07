@@ -35,7 +35,6 @@ import { proxyAiGateway, shouldProxyAiGateway } from "@/features/ai-advisor/serv
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const preferredRegion = "sin1";
 export const maxDuration = 120;
 
 const pageContextSchema = z.object({

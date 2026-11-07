@@ -1,35 +1,66 @@
-name: Deploy OCI
+name: Deploy production
+
 on:
   workflow_dispatch:
-  push: { branches: [main], tags: ['v*'] }
-permissions: { contents: read, packages: write }
+  push:
+    branches: [main]
+
+concurrency:
+  group: homescope-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
 jobs:
-  publish:
-    if: github.repository_owner != 'example'
+  self-hosted:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: docker/login-action@v3
-        with: { registry: ghcr.io, username: '${{ github.actor }}', password: '${{ secrets.GITHUB_TOKEN }}' }
-      - uses: docker/build-push-action@v6
-        with: { context: ., file: apps/web/Dockerfile, push: true, tags: 'ghcr.io/${{ github.repository_owner }}/homescope-web:latest' }
-      - uses: docker/build-push-action@v6
-        with: { context: apps/api, file: apps/api/Dockerfile, push: true, tags: 'ghcr.io/${{ github.repository_owner }}/homescope-api:latest' }
-      - name: Deploy over SSH
-        uses: appleboy/ssh-action@v1
+      - name: Join the private deployment tailnet
+        uses: tailscale/github-action@v4
         with:
-          host: '${{ secrets.OCI_HOST }}'
-          username: '${{ secrets.OCI_USER }}'
-          key: '${{ secrets.OCI_SSH_KEY }}'
-          script: |
-            cd /opt/homescope
-            export COMPOSE_PROFILES=observability
-            docker compose pull
-            docker compose up -d mysql-exporter-init
-            docker compose up -d --remove-orphans
-            curl --fail --retry 12 --retry-delay 5 http://localhost:8080/api/v1/health/ready
-            curl --fail --retry 12 --retry-delay 5 http://127.0.0.1:3001/api/health
-            docker compose exec -T prometheus wget -qO- http://localhost:9090/api/v1/targets >/dev/null
-            bash infra/observability/smoke-test.sh
-      - name: Smoke test
-        run: curl --fail --retry 12 --retry-delay 5 'https://${{ secrets.APP_DOMAIN }}/api/v1/health'
+          oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TAILSCALE_OAUTH_SECRET }}
+          tags: tag:ci
+      - name: Configure SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/homescope
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/homescope ~/.ssh/known_hosts
+      - name: Deploy backend, AI gateway, and observability
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          ssh -i ~/.ssh/homescope "$DEPLOY_USER@$DEPLOY_HOST" \
+            "cd '$DEPLOY_PATH' && git pull --ff-only && export COMPOSE_PROFILES=observability && docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build --remove-orphans && origin_secret=\$(sed -n 's/^ORIGIN_SHARED_SECRET=//p' .env | tail -n 1) && curl --fail --retry 20 --retry-delay 3 -H \"X-HomeScope-Origin-Token: \$origin_secret\" http://127.0.0.1:8080/api/v1/health/ready && curl --fail --retry 20 --retry-delay 3 http://127.0.0.1:3001/api/health"
+
+  vercel:
+    needs: self-hosted
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 11.25.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 24, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - name: Build and deploy frontend
+        working-directory: apps/web
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          pnpm exec vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          pnpm exec vercel build --prod --token="$VERCEL_TOKEN"
+          pnpm exec vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+      - name: Verify the public BFF
+        run: curl --fail --retry 20 --retry-delay 3 https://homescope-sg.vercel.app/api/v1/health/live
