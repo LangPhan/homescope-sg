@@ -4,6 +4,8 @@ HomeScope SG is an independent, full-stack Singapore property portal case study.
 
 > The catalogue is a snapshot of 300 PropNex sale listings. Check the original listing for current availability. The separate `/resale` page shows completed HDB transactions from data.gov.sg. HomeScope is independent of PropNex Limited.
 
+Listing detail pages include a reusable location map, transaction table and price-trend chart. The 476B Upper Serangoon View sample uses 12 matching 4-room resale registrations from the official HDB dataset. Other listings use deterministic modelled values derived from that pattern and are labelled as illustrative in the UI. [HDB resale dataset](https://data.gov.sg/datasets/d_8b84c4ee58e3cfc0ece0d773c8ca6abc/view)
+
 ## Reviewer quick start
 
 ```bash

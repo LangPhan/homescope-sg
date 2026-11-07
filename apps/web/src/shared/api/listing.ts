@@ -24,7 +24,17 @@ export type Listing = {
   amenities?: string[];
   images?: string[];
   agent?: { name: string; registration_no: string; phone: string; avatar_url: string };
-  transactions?: { month: string; price: number; psf: number }[];
+  transactions?: ListingTransaction[];
+};
+
+export type ListingTransaction = {
+  month: string;
+  price: number;
+  psf: number;
+  storey_range?: string | null;
+  floor_area_sqm?: number | null;
+  flat_model?: string | null;
+  data_source?: "hdb" | "modelled";
 };
 
 export type ListingResponse = {

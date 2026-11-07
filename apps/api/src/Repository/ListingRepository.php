@@ -52,6 +52,6 @@ final class ListingRepository
     {
         $stmt=$this->db->prepare('SELECT l.*,ST_X(l.location) latitude,ST_Y(l.location) longitude,s.url source_url,s.subtype,a.name agent_name,a.registration_no,a.phone,a.avatar_url FROM listings l JOIN agents a ON a.id=l.agent_id LEFT JOIN listing_sources s ON s.listing_id=l.id WHERE l.slug=:slug AND l.status="published" LIMIT 1');$stmt->execute(['slug'=>$slug]);$listing=$stmt->fetch();if(!$listing)return null;
         unset($listing['location']);$listing['amenities']=json_decode($listing['amenities_json'],true);unset($listing['amenities_json']);$listing['images']=json_decode($listing['images_json'],true);unset($listing['images_json']);$listing['agent']=['name'=>$listing['agent_name'],'registration_no'=>$listing['registration_no'],'phone'=>$listing['phone'],'avatar_url'=>$listing['avatar_url']];unset($listing['agent_name'],$listing['registration_no'],$listing['phone'],$listing['avatar_url']);
-        $tx=$this->db->prepare('SELECT DATE_FORMAT(transaction_month,"%b %y") month,price,psf FROM transactions WHERE listing_id=:id ORDER BY transaction_month');$tx->execute(['id'=>$listing['id']]);$listing['transactions']=$tx->fetchAll();return $listing;
+        $tx=$this->db->prepare('SELECT DATE_FORMAT(transaction_month,"%Y-%m") month,price,psf,storey_range,floor_area_sqm,flat_model,data_source FROM transactions WHERE listing_id=:id ORDER BY transaction_month');$tx->execute(['id'=>$listing['id']]);$listing['transactions']=$tx->fetchAll();return $listing;
     }
 }

@@ -6,6 +6,19 @@ if ((int)$nullable !== 2) {
     $db->exec("ALTER TABLE listings MODIFY tenure ENUM('99-year','999-year','Freehold') NULL, MODIFY mrt_distance SMALLINT UNSIGNED NULL");
 }
 $db->exec('CREATE TABLE IF NOT EXISTS listing_sources (listing_id BIGINT UNSIGNED PRIMARY KEY, url VARCHAR(500) NOT NULL, subtype VARCHAR(100) NOT NULL, FOREIGN KEY (listing_id) REFERENCES listings(id) ON DELETE CASCADE)');
+$transactionColumns = [
+    'storey_range' => 'VARCHAR(30) NULL',
+    'floor_area_sqm' => 'DECIMAL(7,2) NULL',
+    'flat_model' => 'VARCHAR(80) NULL',
+    'data_source' => "ENUM('hdb','modelled') NOT NULL DEFAULT 'modelled'",
+];
+foreach ($transactionColumns as $column => $definition) {
+    $columnExists = $db->prepare("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='transactions' AND column_name=:column");
+    $columnExists->execute(['column' => $column]);
+    if (!(int)$columnExists->fetchColumn()) {
+        $db->exec("ALTER TABLE transactions ADD COLUMN {$column} {$definition}");
+    }
+}
 $catalogue = json_decode(file_get_contents(dirname(__DIR__) . '/database/propnex-sale-map-sample.geojson'), true, 512, JSON_THROW_ON_ERROR);
 if (count($catalogue['features']) !== 300 || count(array_unique(array_column($catalogue['features'], 'id'))) !== 300) {
     throw new RuntimeException('Expected 300 distinct PropNex listings.');
@@ -42,6 +55,14 @@ ON DUPLICATE KEY UPDATE agent_id=VALUES(agent_id),title=VALUES(title),address=VA
  location=VALUES(location),mrt_name=VALUES(mrt_name),mrt_distance=VALUES(mrt_distance),image_url=VALUES(image_url),images_json=VALUES(images_json),listed_at=VALUES(listed_at),status='published'
 SQL);
 $source = $db->prepare('INSERT INTO listing_sources(listing_id,url,subtype) SELECT id,:url,:subtype FROM listings WHERE external_id=:id ON DUPLICATE KEY UPDATE url=VALUES(url),subtype=VALUES(subtype)');
+$listingIdStatement = $db->prepare('SELECT id FROM listings WHERE external_id=:id');
+$deleteTransactions = $db->prepare('DELETE FROM transactions WHERE listing_id=:listing_id');
+$transactionFixture = json_decode(file_get_contents(dirname(__DIR__) . '/database/hdb-476b-upper-serangoon-view.json'), true, 512, JSON_THROW_ON_ERROR);
+$transactionInsert = $db->prepare(<<<'SQL'
+INSERT INTO transactions (listing_id,transaction_month,price,psf,storey_range,floor_area_sqm,flat_model,data_source)
+VALUES (:listing_id,:month,:price,:psf,:storey,:area,:model,:source)
+ON DUPLICATE KEY UPDATE price=VALUES(price),psf=VALUES(psf),storey_range=VALUES(storey_range),floor_area_sqm=VALUES(floor_area_sqm),flat_model=VALUES(flat_model),data_source=VALUES(data_source)
+SQL);
 $db->beginTransaction();
 try {
     $db->exec("UPDATE listings SET status='archived' WHERE external_id LIKE 'SYN-%' OR external_id LIKE 'propnex-%'");
@@ -78,6 +99,27 @@ try {
             'images' => json_encode($listingPhotos, JSON_THROW_ON_ERROR), 'listed' => $p['listed_at'],
         ]);
         $source->execute(['id' => $feature['id'], 'url' => $p['listing_url'], 'subtype' => $p['property_type'] ?? $type]);
+        $listingIdStatement->execute(['id' => $feature['id']]);
+        $listingId = (int)$listingIdStatement->fetchColumn();
+        $deleteTransactions->execute(['listing_id' => $listingId]);
+        $isRealSample = $feature['id'] === $transactionFixture['match']['listing_external_id'];
+        foreach ($transactionFixture['records'] as $index => $transaction) {
+            $areaSqm = $isRealSample ? (float)$transaction['floor_area_sqm'] : round(((float)($p['floor_area'] ?? 0)) / 10.7639, 2);
+            $templateRatio = $transaction['resale_price'] / 750000;
+            $stableVariation = 0.97 + (($stableHash >> ($index % 16)) & 7) / 100;
+            $price = $isRealSample ? (int)$transaction['resale_price'] : (int)(round(($p['price'] * $templateRatio * $stableVariation) / 1000) * 1000);
+            $floorAreaSqft = max(1, $areaSqm * 10.7639);
+            $transactionInsert->execute([
+                'listing_id' => $listingId,
+                'month' => $transaction['month'] . '-01',
+                'price' => $price,
+                'psf' => (int)round($price / $floorAreaSqft),
+                'storey' => $transaction['storey_range'],
+                'area' => $areaSqm,
+                'model' => $isRealSample ? $transaction['flat_model'] : ($p['property_type'] ?? $type),
+                'source' => $isRealSample ? 'hdb' : 'modelled',
+            ]);
+        }
     }
     $db->commit();
 } catch (Throwable $error) {

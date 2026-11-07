@@ -1,0 +1,29 @@
+{
+  "source": {
+    "agency": "Housing & Development Board",
+    "dataset": "Resale flat prices based on registration date from Jan-2017 onwards",
+    "dataset_id": "d_8b84c4ee58e3cfc0ece0d773c8ca6abc",
+    "url": "https://data.gov.sg/datasets/d_8b84c4ee58e3cfc0ece0d773c8ca6abc/view",
+    "retrieved_at": "2026-11-07"
+  },
+  "match": {
+    "listing_external_id": "propnex-1044431",
+    "block": "476B",
+    "street_name": "UPP SERANGOON VIEW",
+    "flat_type": "4 ROOM"
+  },
+  "records": [
+    { "month": "2023-03", "storey_range": "10 TO 12", "floor_area_sqm": 92, "flat_model": "Premium Apartment", "resale_price": 685000 },
+    { "month": "2023-04", "storey_range": "13 TO 15", "floor_area_sqm": 92, "flat_model": "Premium Apartment", "resale_price": 707000 },
+    { "month": "2023-07", "storey_range": "04 TO 06", "floor_area_sqm": 92, "flat_model": "Premium Apartment", "resale_price": 660000 },
+    { "month": "2024-01", "storey_range": "10 TO 12", "floor_area_sqm": 92, "flat_model": "Premium Apartment", "resale_price": 620000 },
+    { "month": "2024-04", "storey_range": "04 TO 06", "floor_area_sqm": 92, "flat_model": "Premium Apartment", "resale_price": 635000 },
+    { "month": "2024-09", "storey_range": "07 TO 09", "floor_area_sqm": 92, "flat_model": "Premium Apartment", "resale_price": 708888 },
+    { "month": "2025-05", "storey_range": "10 TO 12", "floor_area_sqm": 92, "flat_model": "Premium Apartment", "resale_price": 800000 },
+    { "month": "2025-09", "storey_range": "13 TO 15", "floor_area_sqm": 92, "flat_model": "Premium Apartment", "resale_price": 770000 },
+    { "month": "2025-12", "storey_range": "16 TO 18", "floor_area_sqm": 92, "flat_model": "Premium Apartment", "resale_price": 760000 },
+    { "month": "2026-01", "storey_range": "07 TO 09", "floor_area_sqm": 92, "flat_model": "Premium Apartment", "resale_price": 758000 },
+    { "month": "2026-09", "storey_range": "13 TO 15", "floor_area_sqm": 92, "flat_model": "Premium Apartment", "resale_price": 758000 },
+    { "month": "2026-10", "storey_range": "10 TO 12", "floor_area_sqm": 92, "flat_model": "Premium Apartment", "resale_price": 750000 }
+  ]
+}
