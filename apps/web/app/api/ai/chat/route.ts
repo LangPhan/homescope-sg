@@ -31,9 +31,12 @@ import {
 } from "@/features/ai-advisor/server/response-cache";
 import { logEvent, requestIdFrom } from "@/shared/observability/logger";
 import { recordAiCache, recordAiProvider, recordAiRequest, recordAiUsage } from "@/shared/observability/metrics";
+import { proxyAiGateway, shouldProxyAiGateway } from "@/features/ai-advisor/server/gateway-proxy";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const preferredRegion = "sin1";
+export const maxDuration = 120;
 
 const pageContextSchema = z.object({
   pathname: z.string().max(160).regex(/^\/[a-z0-9/_-]*$/i),
@@ -112,6 +115,8 @@ function blockedResponse(classification: Classification, threadId: string, runId
 }
 
 export async function POST(request: Request) {
+  if (shouldProxyAiGateway()) return proxyAiGateway(request);
+
   const startedAt = performance.now();
   const requestId = requestIdFrom(request);
   const denied = await authorize(request, requestId);
