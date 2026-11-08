@@ -61,5 +61,17 @@ jobs:
         with: { node-version: 22, cache: pnpm }
       - run: pnpm install --frozen-lockfile
       - run: pnpm --dir apps/web exec playwright install --with-deps chromium
-      - run: docker compose up -d --build
-      - run: PLAYWRIGHT_BASE_URL=http://localhost:8080 pnpm --dir apps/web test:e2e --project=chromium
+      - name: Start the application stack
+        run: docker compose up -d --build
+      - name: Wait for the API and frontend
+        run: |
+          curl --fail --show-error --retry 30 --retry-delay 2 --retry-all-errors --connect-timeout 3 --max-time 5 http://localhost:8080/api/v1/health/ready
+          curl --fail --show-error --retry 30 --retry-delay 2 --retry-all-errors --connect-timeout 3 --max-time 5 http://localhost:8080/auth
+      - name: Run browser tests
+        run: PLAYWRIGHT_BASE_URL=http://localhost:8080 pnpm --dir apps/web test:e2e --project=chromium
+      - name: Show application logs on failure
+        if: failure()
+        run: docker compose logs --no-color --tail=200 edge web api mysql redis
+      - name: Stop the application stack
+        if: always()
+        run: docker compose down --volumes
