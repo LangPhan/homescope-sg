@@ -104,7 +104,7 @@ Set `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in `.env` and restrict the key to your dep
 
 Production uses a hybrid layout: the Next.js frontend and same-origin BFF run on Vercel, while PHP, MySQL, Redis, 9Router, the AI gateway, and observability stay on the Tailscale host. The protected origin is exposed through Tailscale Funnel and accepts only a server-side shared header. See [`docs/hybrid-deployment.md`](docs/hybrid-deployment.md) for setup, deployment secrets, smoke tests, and rollback. Secrets never enter Git or image layers.
 
-For the complete Vietnamese workflow—from backend-only Docker development and manual frontend testing through CI, Vercel, Tailscale deployment, monitoring, rollback and troubleshooting—use the [`development-to-production runbook`](docs/dev-to-production.md).
+For the complete workflow—from backend-only Docker development and manual frontend testing through CI, Vercel, Tailscale deployment, monitoring, rollback, and troubleshooting—use the [`development-to-production runbook`](docs/dev-to-production.md).
 
 ## Monitoring and logging
 
