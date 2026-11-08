@@ -64,17 +64,17 @@ The project is `langphans-projects/homescope-sg`, with `apps/web` as its working
 | `NEXT_PUBLIC_API_URL` | `/api/v1` |
 | `APP_URL` | `https://homescope-sg.vercel.app` |
 
-Do not add `NINE_ROUTER_API_KEY` to Vercel. It remains only on the self-hosted AI gateway. Deploy from `apps/web` with `vercel --prod`, or use the production workflow.
+Do not add `NINE_ROUTER_API_KEY` to Vercel. It remains only on the self-hosted AI gateway. Normal frontend releases are created automatically by Vercel Git Integration after a push to `main`; `vercel --prod` is only needed for a deliberate manual deployment.
 
 ## GitHub deployment secrets
 
-The workflow joins the tailnet before SSH deployment and deploys Vercel only after the origin is healthy. Configure:
+The workflow joins the tailnet before SSH deployment. Vercel deploys separately through its Git integration after a push to `main`. Configure:
 
 - `TAILSCALE_OAUTH_CLIENT_ID`, `TAILSCALE_OAUTH_SECRET` for an OAuth client allowed to use `tag:ci`.
 - `DEPLOY_HOST`, `DEPLOY_USER`, `DEPLOY_PATH`, `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS` for this machine over its tailnet address.
-- `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` for `homescope-sg`.
-
 The tailnet ACL should allow `tag:ci` to reach only SSH on the deployment host. Funnel is for application traffic; deployment SSH stays private to the tailnet.
+
+The current workflow does not require `VERCEL_TOKEN`, `VERCEL_ORG_ID` or `VERCEL_PROJECT_ID`. See [`dev-to-production.md`](dev-to-production.md) for the complete current runbook.
 
 ## Smoke tests and rollback
 

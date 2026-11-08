@@ -104,6 +104,8 @@ Set `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` in `.env` and restrict the key to your dep
 
 Production uses a hybrid layout: the Next.js frontend and same-origin BFF run on Vercel, while PHP, MySQL, Redis, 9Router, the AI gateway, and observability stay on the Tailscale host. The protected origin is exposed through Tailscale Funnel and accepts only a server-side shared header. See [`docs/hybrid-deployment.md`](docs/hybrid-deployment.md) for setup, deployment secrets, smoke tests, and rollback. Secrets never enter Git or image layers.
 
+For the complete Vietnamese workflow—from backend-only Docker development and manual frontend testing through CI, Vercel, Tailscale deployment, monitoring, rollback and troubleshooting—use the [`development-to-production runbook`](docs/dev-to-production.md).
+
 ## Monitoring and logging
 
 The optional `observability` Compose profile runs Prometheus, Loki, Grafana and Grafana Alloy entirely on the Docker host. Alloy scrapes HomeScope, host, container, MySQL and Redis metrics and ships Docker logs to Loki. Grafana is the only component with a host port, bound to `127.0.0.1`.
