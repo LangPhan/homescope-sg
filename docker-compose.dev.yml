@@ -1,0 +1,8 @@
+services:
+  edge:
+    volumes: !override
+      - ./infra/nginx/api-only.conf:/etc/nginx/templates/default.conf.template:ro
+      - ./apps/api/public:/var/www/api/public:ro
+    depends_on: !override
+      - api
+
