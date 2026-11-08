@@ -32,6 +32,16 @@ COMPOSE_PROFILES=observability docker compose \
   up -d --build --remove-orphans
 ```
 
+On this host, where frontend dependencies already exist and the registry is slow, package the local production build into the same runtime image without downloading dependencies inside Docker:
+
+```bash
+pnpm --dir apps/web build
+docker build -f apps/web/Dockerfile.prebuilt -t prop-next-web apps/web
+COMPOSE_PROFILES=observability docker compose \
+  -f docker-compose.yml -f docker-compose.prod.yml \
+  up -d --no-build --remove-orphans
+```
+
 The production override binds Nginx only to `127.0.0.1:8080`. Replace the old Funnel that exposed 9Router directly:
 
 ```bash

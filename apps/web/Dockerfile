@@ -3,7 +3,9 @@ RUN corepack enable
 WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/web/package.json apps/web/package.json
-RUN pnpm install --filter @homescope/web... --frozen-lockfile
+RUN --mount=type=cache,id=homescope-pnpm,target=/pnpm/store \
+    pnpm config set store-dir /pnpm/store && \
+    pnpm install --filter @homescope/web... --frozen-lockfile --network-concurrency=4 --fetch-retries=5 --fetch-timeout=120000
 
 FROM base AS builder
 COPY apps/web apps/web
