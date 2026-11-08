@@ -85,14 +85,14 @@ prometheus.exporter.blackbox "services" {
 
 	target {
 		name    = "api"
-		address = "http://edge/api/v1/health/ready"
+		address = "http://edge:8081/api/v1/health/ready"
 		module  = "http_2xx"
 		labels  = {environment = sys.env("APP_ENV"), service = "api"}
 	}
 
 	target {
 		name    = "web"
-		address = "http://edge/api/internal/health"
+		address = "http://edge:8081/api/internal/health"
 		module  = "http_2xx"
 		labels  = {environment = sys.env("APP_ENV"), service = "web"}
 	}

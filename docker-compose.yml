@@ -16,7 +16,7 @@ services:
       dockerfile: apps/web/Dockerfile
     environment:
       APP_URL: http://localhost:8080
-      API_INTERNAL_URL: http://edge/api/v1
+      API_INTERNAL_URL: http://edge:8081/api/v1
       NEXT_PUBLIC_API_URL: /api/v1
       NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${NEXT_PUBLIC_GOOGLE_MAPS_API_KEY:-}
       NINE_ROUTER_BASE_URL: ${NINE_ROUTER_BASE_URL:-http://host.docker.internal:20128/v1}
