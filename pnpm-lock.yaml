@@ -52,6 +52,9 @@ importers:
       cn:
         specifier: ^0.5.2
         version: 0.5.2
+      gsap:
+        specifier: ^3.15.1
+        version: 3.15.1
       lucide-react:
         specifier: ^0.552.0
         version: 0.552.0(react@19.3.1)
@@ -1454,6 +1457,9 @@ packages:
 
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
+
+  gsap@3.15.1:
+    resolution: {integrity: sha512-63yjWRFWj3QRP1UOuD8kcidCcy3nxb1mMRpwHr/xJRvPfm9GtWOXFAYUiL0ro1fgPq2nY53LR+98pAgy9BumBg==}
 
   html-encoding-sniffer@6.0.0:
     resolution: {integrity: sha512-CV9TW3Y3f8/wT0BRFc1/KAVQ3TUHiXmaAb6VW9vtiMFf7SLoMd1PdAc4W3KFOFETBJUb90KatHqlsZMWV+R9Gg==}
@@ -3162,6 +3168,8 @@ snapshots:
   gl-matrix@3.4.4: {}
 
   graceful-fs@4.2.11: {}
+
+  gsap@3.15.1: {}
 
   html-encoding-sniffer@6.0.0:
     dependencies:
