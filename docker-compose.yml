@@ -135,12 +135,15 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-homescope-grafana-local}
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_PATHS_PROVISIONING: /tmp/homescope-provisioning
       GF_ANALYTICS_REPORTING_ENABLED: "false"
       GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-disabled:local}
-      TELEGRAM_CHAT_ID: '"${TELEGRAM_CHAT_ID:-0}"'
+      TELEGRAM_CHAT_ID: "${TELEGRAM_CHAT_ID:-0}"
+    entrypoint: ["/bin/sh", "/usr/local/bin/homescope-grafana-entrypoint"]
     volumes:
-      - ./infra/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/observability/grafana/entrypoint.sh:/usr/local/bin/homescope-grafana-entrypoint:ro
+      - ./infra/observability/grafana/provisioning:/etc/grafana/provisioning-source:ro
       - ./infra/observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana_data:/var/lib/grafana
     depends_on:
