@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace HomeScope\Controller;
 
+use HomeScope\CounterStoreUnavailable;
 use HomeScope\Http;
 use HomeScope\Service\AiQuotaService;
 use Psr\Http\Message\ResponseInterface;
@@ -15,7 +16,16 @@ final class AiController
     public function authorize(ServerRequestInterface $request, ResponseInterface $response): ResponseInterface
     {
         $userId = (int)$request->getAttribute('user_id');
-        $quota = $this->quota->consume($userId);
+        try {
+            $quota = $this->quota->consume($userId);
+        } catch (CounterStoreUnavailable) {
+            return Http::error(
+                $response,
+                'AI_QUOTA_UNAVAILABLE',
+                'AI advisor quota protection is temporarily unavailable.',
+                503,
+            )->withHeader('Retry-After', '5');
+        }
 
         if (!$quota['allowed']) {
             return Http::error(

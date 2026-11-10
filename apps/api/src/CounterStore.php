@@ -5,5 +5,6 @@ namespace HomeScope;
 
 interface CounterStore
 {
+    /** @throws CounterStoreUnavailable */
     public function increment(string $key, int $ttl): int;
 }

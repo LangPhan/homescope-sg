@@ -22,7 +22,16 @@ final class Cache implements CounterStore
     }
     public function increment(string $key, int $ttl): int
     {
-        try { $count = (int)$this->client()->incr($key); if ($count === 1) $this->client()->expire($key, $ttl); return $count; } catch (\Throwable) { return 1; }
+        try {
+            return (int)$this->client()->eval(
+                "local count = redis.call('INCR', KEYS[1]); if count == 1 then redis.call('EXPIRE', KEYS[1], ARGV[1]); end; return count",
+                1,
+                $key,
+                (string)$ttl,
+            );
+        } catch (\Throwable $error) {
+            throw new CounterStoreUnavailable('Security counter storage is unavailable.', 0, $error);
+        }
     }
     public function ping(): bool
     {
